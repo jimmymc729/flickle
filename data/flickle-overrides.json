@@ -2,5 +2,11 @@
   "the mask::1994": {
     "cast": ["Jim Carrey", "Cameron Diaz", "Peter Riegert", "Peter Greene", "Amy Yasbeck"],
     "language": "English"
+  },
+  "28 days later::2002": {
+    "language": "English"
+  },
+  "the exorcist::1973": {
+    "language": "English"
   }
 }

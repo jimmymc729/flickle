@@ -1115,7 +1115,7 @@
         <button id="mode-rewind" class="menu-link" type="button">Rewind</button>
         <p class="menu-note">Play a random puzzle from the last 7 days.</p>
         <button id="mode-jam" class="menu-link" type="button">Jam</button>
-        <p class="menu-note">Unlimited random practice puzzles.</p>
+        <p class="menu-note">Random practice puzzle with 10 guesses.</p>
         <button id="mode-create" class="menu-link" type="button">Create</button>
         <p class="menu-note">Create a custom movie puzzle link for a friend.</p>
       </div>
@@ -1214,6 +1214,7 @@
     const STATS_KEY = "flickle-stats";
     const THUMB_CACHE_KEY = "flickle-thumb-cache-v1";
     const RATING_CACHE_KEY = "flickle-rating-cache-v1";
+    const LANGUAGE_CACHE_KEY = "flickle-language-cache-v1";
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const storageFallback = {};
@@ -1262,7 +1263,7 @@
       { title: "21", year: 2008, runtime: 123, genres: ["Drama", "Crime"], director: "Robert Luketic", cast: ["Jim Sturgess", "Kevin Spacey", "Kate Bosworth", "Aaron Yoo", "Liza Lapira"], country: "USA", language: "English", franchise: "", studio: "Columbia Pictures", boxOffice: 159808370, voteCount: 5014, voteAverage: 6.7, popularity: 7.8 },
       { title: "21 Jump Street", year: 2012, runtime: 109, genres: ["Action", "Comedy", "Crime"], director: "Phil Lord and Christopher Miller", cast: ["Jonah Hill", "Channing Tatum", "Brie Larson", "Dave Franco", "Rob Riggle"], country: "USA", language: "English", franchise: "Jump Street Collection", studio: "Columbia Pictures", boxOffice: 201585328, voteCount: 10962, voteAverage: 6.9, popularity: 7.8 },
       { title: "22 Jump Street", year: 2014, runtime: 112, genres: ["Crime", "Comedy", "Action"], director: "Phil Lord and Christopher Miller", cast: ["Jonah Hill", "Channing Tatum", "Peter Stormare", "Wyatt Russell", "Amber Stevens West"], country: "USA", language: "English", franchise: "Jump Street Collection", studio: "Columbia Pictures", boxOffice: 331333876, voteCount: 8482, voteAverage: 6.8, popularity: 7.0 },
-      { title: "28 Days Later", year: 2002, runtime: 113, genres: ["Horror", "Thriller", "Science Fiction"], director: "Danny Boyle", cast: ["Cillian Murphy", "Naomie Harris", "Brendan Gleeson", "Megan Burns", "Christopher Eccleston"], country: "United Kingdom", language: "Spanish", franchise: "28 Days/Weeks/Years Later Collection", studio: "DNA Films", boxOffice: 82784517, voteCount: 8416, voteAverage: 7.2, popularity: 13.1 },
+      { title: "28 Days Later", year: 2002, runtime: 113, genres: ["Horror", "Thriller", "Science Fiction"], director: "Danny Boyle", cast: ["Cillian Murphy", "Naomie Harris", "Brendan Gleeson", "Megan Burns", "Christopher Eccleston"], country: "United Kingdom", language: "English", franchise: "28 Days/Weeks/Years Later Collection", studio: "DNA Films", boxOffice: 82784517, voteCount: 8416, voteAverage: 7.2, popularity: 13.1 },
       { title: "28 Weeks Later", year: 2007, runtime: 99, genres: ["Horror", "Thriller", "Science Fiction"], director: "Juan Carlos Fresnadillo", cast: ["Robert Carlyle", "Rose Byrne", "Jeremy Renner", "Harold Perrineau", "Catherine McCormack"], country: "United Kingdom", language: "English", franchise: "28 Days/Weeks/Years Later Collection", studio: "DNA Films", boxOffice: 72304846, voteCount: 5506, voteAverage: 6.6, popularity: 8.8 },
       { title: "300", year: 2007, runtime: 117, genres: ["Action", "Adventure", "War"], director: "Zack Snyder", cast: ["Gerard Butler", "Lena Headey", "Dominic West", "David Wenham", "Vincent Regan"], country: "USA", language: "English", franchise: "300 Collection", studio: "Warner Bros. Pictures", boxOffice: 456082343, voteCount: 14654, voteAverage: 7.2, popularity: 11.3 },
       { title: "50 First Dates", year: 2004, runtime: 99, genres: ["Comedy", "Romance"], director: "Peter Segal", cast: ["Adam Sandler", "Drew Barrymore", "Rob Schneider", "Sean Astin", "Lusia Strus"], country: "USA", language: "English", franchise: "", studio: "Columbia Pictures", boxOffice: 196482882, voteCount: 7680, voteAverage: 6.9, popularity: 8.0 },
@@ -2012,7 +2013,7 @@
       { title: "The Empire Strikes Back", year: 1980, runtime: 124, genres: ["Adventure", "Action", "Science Fiction"], director: "Irvin Kershner", cast: ["Mark Hamill", "Harrison Ford", "Carrie Fisher", "Billy Dee Williams", "Anthony Daniels"], country: "USA", language: "English", franchise: "Star Wars Collection", studio: "Lucasfilm Ltd.", boxOffice: 538400000, voteCount: 18311, voteAverage: 8.4, popularity: 12.4 },
       { title: "The Equalizer", year: 2014, runtime: 132, genres: ["Thriller", "Action", "Crime"], director: "Antoine Fuqua", cast: ["Denzel Washington", "Marton Csokas", "Chlo\u00eb Grace Moretz", "David Harbour", "Haley Bennett"], country: "USA", language: "English", franchise: "The Equalizer Collection", studio: "Columbia Pictures", boxOffice: 192330738, voteCount: 9888, voteAverage: 7.3, popularity: 18.5 },
       { title: "The Equalizer 2", year: 2018, runtime: 121, genres: ["Action", "Thriller", "Crime"], director: "Antoine Fuqua", cast: ["Denzel Washington", "Pedro Pascal", "Ashton Sanders", "Orson Bean", "Bill Pullman"], country: "USA", language: "Arabic", franchise: "The Equalizer Collection", studio: "Columbia Pictures", boxOffice: 190400157, voteCount: 5929, voteAverage: 6.8, popularity: 10.0 },
-      { title: "The Exorcist", year: 1973, runtime: 122, genres: ["Horror", "Drama"], director: "William Friedkin", cast: ["Ellen Burstyn", "Linda Blair", "Jason Miller", "Max von Sydow", "Lee J. Cobb"], country: "USA", language: "German", franchise: "The Exorcist Collection", studio: "Warner Bros. Pictures", boxOffice: 441306145, voteCount: 8586, voteAverage: 7.7, popularity: 13.5 },
+      { title: "The Exorcist", year: 1973, runtime: 122, genres: ["Horror", "Drama"], director: "William Friedkin", cast: ["Ellen Burstyn", "Linda Blair", "Jason Miller", "Max von Sydow", "Lee J. Cobb"], country: "USA", language: "English", franchise: "The Exorcist Collection", studio: "Warner Bros. Pictures", boxOffice: 441306145, voteCount: 8586, voteAverage: 7.7, popularity: 13.5 },
       { title: "The Expendables", year: 2010, runtime: 103, genres: ["Thriller", "Adventure", "Action"], director: "Sylvester Stallone", cast: ["Sylvester Stallone", "Jason Statham", "Jet Li", "Dolph Lundgren", "Eric Roberts"], country: "USA", language: "English", franchise: "The Expendables Collection", studio: "Lionsgate", boxOffice: 274470394, voteCount: 8250, voteAverage: 6.3, popularity: 11.2 },
       { title: "The Expendables 2", year: 2012, runtime: 103, genres: ["Action", "Adventure", "Thriller"], director: "Simon West", cast: ["Sylvester Stallone", "Jason Statham", "Jet Li", "Dolph Lundgren", "Chuck Norris"], country: "USA", language: "English", franchise: "The Expendables Collection", studio: "Lionsgate", boxOffice: 314975955, voteCount: 7143, voteAverage: 6.4, popularity: 7.9 },
       { title: "The Expendables 3", year: 2014, runtime: 126, genres: ["Action", "Adventure", "Thriller"], director: "Patrick Hughes", cast: ["Sylvester Stallone", "Jason Statham", "Harrison Ford", "Arnold Schwarzenegger", "Mel Gibson"], country: "USA", language: "English", franchise: "The Expendables Collection", studio: "Lionsgate", boxOffice: 214657577, voteCount: 5315, voteAverage: 6.2, popularity: 9.6 },
@@ -2363,7 +2364,9 @@
     const DATA_AUDIT = validateDataset(MOVIES, OSCAR_NOMS_BY_TITLE);
     const thumbCache = loadThumbCache();
     const ratingCache = loadRatingCache();
+    const languageCache = loadLanguageCache();
     const ratingLookupsInFlight = new Set();
+    const languageLookupsInFlight = new Set();
 
     const orderedTitles = MOVIES.map((m) => m.title).sort((a, b) => a.localeCompare(b));
     for (const title of orderedTitles) {
@@ -2380,7 +2383,6 @@
     const customMode = Boolean(customMovie);
     const requestedMode = (urlParams.get("mode") || "daily").toLowerCase();
     const gameMode = customMode ? "custom" : (requestedMode === "rewind" || requestedMode === "jam" ? requestedMode : "daily");
-    const isJamMode = gameMode === "jam";
     const rewindOffsetFromQuery = Number.parseInt(urlParams.get("offset") || "", 10);
     const rewindOffset = Number.isInteger(rewindOffsetFromQuery) && rewindOffsetFromQuery <= -1 && rewindOffsetFromQuery >= -7
       ? rewindOffsetFromQuery
@@ -2552,10 +2554,14 @@
           puzzle_key: puzzleKey,
           guesses_used: state.guesses.length
         });
-      } else if (state.guesses.length >= MAX_GUESSES && !isJamMode) {
+      } else if (state.guesses.length >= MAX_GUESSES) {
         state.finished = true;
         state.won = false;
-        state.message = `Out of guesses. Today's movie was ${answer.title}.`;
+        state.message = gameMode === "jam"
+          ? `Out of guesses. This jam movie was ${answer.title}.`
+          : gameMode === "rewind"
+            ? `Out of guesses. This rewind movie was ${answer.title}.`
+            : `Out of guesses. Today's movie was ${answer.title}.`;
         trackAnalyticsEvent("lose_game", {
           game_mode: gameMode,
           custom_mode: customMode ? "yes" : "no",
@@ -2563,9 +2569,7 @@
           guesses_used: state.guesses.length
         });
       } else {
-        state.message = isJamMode
-          ? `${state.guesses.length} guesses made. Keep going.`
-          : `${MAX_GUESSES - state.guesses.length} guesses left.`;
+        state.message = `${MAX_GUESSES - state.guesses.length} guesses left.`;
       }
 
       if (state.finished && !state.scored) {
@@ -2587,7 +2591,7 @@
       const introLine = customMode
         ? `${MAX_GUESSES} guesses, friend challenge. Can you solve it?`
         : gameMode === "jam"
-          ? `Jam mode: unlimited guesses, ${MOVIES.length} movies.`
+          ? `Jam mode: 10 guesses, random movie practice.`
           : gameMode === "rewind"
             ? `${MAX_GUESSES} guesses, rewind puzzle from the past week.`
             : `${MAX_GUESSES} guesses, ${MOVIES.length} movies. Will you win today?`;
@@ -2628,9 +2632,7 @@
       if (state.finished) {
         setStatus(state.message || buildCompletionStatusMessage(), state.won ? "success" : "complete");
       } else {
-        setStatus(state.message || (gameMode === "jam"
-          ? `${used} guesses made. Keep going.`
-          : `${MAX_GUESSES - used} guesses left.`));
+        setStatus(state.message || `${MAX_GUESSES - used} guesses left.`);
       }
 
       const showFinishShare = state.finished && !customMode;
@@ -2692,7 +2694,12 @@
         els.resultEffort.classList.add("hidden");
       } else {
         els.resultEffortTitle.textContent = "Tough Luck...";
-        els.resultEffortBody.textContent = `You used all ${MAX_GUESSES} guesses. Today's answer was ${answer.title}.`;
+        const label = gameMode === "jam"
+          ? "This jam movie was"
+          : gameMode === "rewind"
+            ? "This rewind movie was"
+            : "Today's answer was";
+        els.resultEffortBody.textContent = `You used all ${MAX_GUESSES} guesses. ${label} ${answer.title}.`;
         els.resultEffort.classList.remove("hidden");
       }
       els.resultPoster.alt = `Poster for ${answer.title}`;
@@ -2796,8 +2803,10 @@
         els.cards.appendChild(card);
         hydrateAvatar(card, guess);
         ensureRatingDataForMovie(guess);
+        ensureLanguageDataForMovie(guess);
       }
       ensureRatingDataForMovie(answer);
+      ensureLanguageDataForMovie(answer);
     }
 
     function hydrateAvatar(card, movie) {
@@ -2900,6 +2909,90 @@
         if (fallbackRating) return normalizeRating(fallbackRating.certification);
       }
       return "";
+    }
+
+    async function ensureLanguageDataForMovie(movie) {
+      if (!movie || typeof movie !== "object") return;
+      const cacheKey = movieCacheKey(movie);
+      if (String(languageCache[cacheKey] || "").trim()) return;
+      if (languageLookupsInFlight.has(cacheKey)) return;
+      languageLookupsInFlight.add(cacheKey);
+
+      try {
+        const fetched = await fetchLanguageForMovie(movie);
+        const normalized = String(fetched || "").trim();
+        if (!normalized) return;
+        languageCache[cacheKey] = normalized;
+        persistLanguageCache(languageCache);
+        renderAll();
+      } catch {
+        // Silent fallback: keep bundled language if lookup fails.
+      } finally {
+        languageLookupsInFlight.delete(cacheKey);
+      }
+    }
+
+    async function fetchLanguageForMovie(movie) {
+      const tmdbCandidates = [];
+      const primary = String(tmdbApiKey || "").trim();
+      const fallback = String(TMDB_DEFAULT_API_KEY || "").trim();
+      if (primary) tmdbCandidates.push(primary);
+      if (fallback && fallback !== primary) tmdbCandidates.push(fallback);
+
+      for (const key of tmdbCandidates) {
+        try {
+          const language = await fetchLanguageFromTmdb(movie, key);
+          if (language) return language;
+        } catch {
+          // Try next key candidate.
+        }
+      }
+      return "";
+    }
+
+    function pickLanguageFromTmdbDetail(detail) {
+      const original = String(detail.original_language || "").trim().toLowerCase();
+      if (original && LANGUAGE_CODE_TO_NAME[original]) {
+        return LANGUAGE_CODE_TO_NAME[original];
+      }
+
+      const spoken = Array.isArray(detail.spoken_languages) ? detail.spoken_languages : [];
+      if (original) {
+        const matching = spoken.find((item) => String(item.iso_639_1 || "").trim().toLowerCase() === original);
+        if (matching && String(matching.english_name || "").trim()) {
+          return String(matching.english_name).trim();
+        }
+      }
+      if (spoken.length > 0 && String(spoken[0].english_name || "").trim()) {
+        return String(spoken[0].english_name).trim();
+      }
+      return original ? original.toUpperCase() : "";
+    }
+
+    async function fetchLanguageFromTmdb(movie, apiKey) {
+      const query = encodeURIComponent(movie.title);
+      const yearParam = Number.isFinite(movie.year) ? `&year=${movie.year}` : "";
+      const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${query}${yearParam}&include_adult=false&page=1`;
+      const searchRes = await fetch(searchUrl);
+      if (searchRes.status === 401 || searchRes.status === 403) return "";
+      if (!searchRes.ok) return "";
+
+      const searchPayload = await searchRes.json();
+      const results = Array.isArray(searchPayload.results) ? searchPayload.results : [];
+      if (!results.length) return "";
+
+      const target = normalize(movie.title);
+      const best = results.find((item) => normalize(item.title || "") === target)
+        || results.find((item) => normalize(item.title || "").includes(target))
+        || results[0];
+      const movieId = best && Number.isFinite(best.id) ? best.id : null;
+      if (!movieId) return "";
+
+      const detailsUrl = `https://api.themoviedb.org/3/movie/${movieId}?api_key=${encodeURIComponent(apiKey)}`;
+      const detailsRes = await fetch(detailsUrl);
+      if (!detailsRes.ok) return "";
+      const detail = await detailsRes.json();
+      return pickLanguageFromTmdbDetail(detail);
     }
 
     function tileHtml(label, value, tone, wide = false) {
@@ -3041,10 +3134,44 @@
       return { label: guessValue, state: normalize(guessValue) === normalize(targetValue) ? "hit" : "miss" };
     }
 
+    const LANGUAGE_CODE_TO_NAME = {
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      it: "Italian",
+      pt: "Portuguese",
+      ja: "Japanese",
+      ko: "Korean",
+      zh: "Chinese",
+      ru: "Russian",
+      hi: "Hindi",
+      ar: "Arabic",
+      sv: "Swedish",
+      da: "Danish",
+      no: "Norwegian",
+      fi: "Finnish",
+      nl: "Dutch",
+      pl: "Polish",
+      tr: "Turkish",
+      he: "Hebrew",
+      th: "Thai",
+      cs: "Czech",
+      uk: "Ukrainian"
+    };
+
+    function getMovieLanguage(movie) {
+      if (!movie || typeof movie !== "object") return "";
+      const key = movieCacheKey(movie);
+      const cached = String(languageCache[key] || "").trim();
+      if (cached) return cached;
+      return String(movie.language || "").trim();
+    }
+
     function compareLanguage(guessMovie, targetMovie) {
       if (!targetMovie || typeof targetMovie !== "object") return { label: "N/A", state: "na" };
-      const guessValue = String(guessMovie.language || "").trim();
-      const targetValue = String(targetMovie.language || "").trim();
+      const guessValue = getMovieLanguage(guessMovie);
+      const targetValue = getMovieLanguage(targetMovie);
       if (!guessValue || !targetValue) return { label: guessValue || "N/A", state: "na" };
       return { label: guessValue, state: normalize(guessValue) === normalize(targetValue) ? "hit" : "miss" };
     }
@@ -3309,10 +3436,22 @@
         if (customMode) {
           return `Challenge solved. Nice work: ${state.guesses.length}/${MAX_GUESSES}.`;
         }
+        if (gameMode === "jam") {
+          return `Jam solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+        }
+        if (gameMode === "rewind") {
+          return `Rewind solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+        }
         return `Already solved today. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
       }
       if (customMode) {
         return `Challenge complete. You gave it a solid run.`;
+      }
+      if (gameMode === "jam") {
+        return `Jam complete. Tough luck — the answer was ${answer.title}.`;
+      }
+      if (gameMode === "rewind") {
+        return `Rewind complete. Tough luck — the answer was ${answer.title}.`;
       }
       return `Daily Flickle complete. Tough luck — today's movie was ${answer.title}.`;
     }
@@ -3848,6 +3987,22 @@
 
     function persistRatingCache(cache) {
       storageSet(RATING_CACHE_KEY, JSON.stringify(cache));
+    }
+
+    function loadLanguageCache() {
+      const raw = storageGet(LANGUAGE_CACHE_KEY);
+      if (!raw) return {};
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        storageRemove(LANGUAGE_CACHE_KEY);
+        return {};
+      }
+    }
+
+    function persistLanguageCache(cache) {
+      storageSet(LANGUAGE_CACHE_KEY, JSON.stringify(cache));
     }
 
     function parseCustomMovieFromUrl() {
