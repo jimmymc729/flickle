@@ -858,6 +858,8 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+      perspective: 900px;
+      transform-style: preserve-3d;
     }
 
     .tile {
@@ -871,6 +873,24 @@
       text-align: center;
       line-height: 1.15;
       overflow: hidden;
+      position: relative;
+      transform-origin: 50% 58%;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      backface-visibility: visible;
+      -webkit-backface-visibility: visible;
+      will-change: transform, opacity, filter;
+    }
+    .tile::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(130% 90% at 50% 50%, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.28)),
+        linear-gradient(180deg, rgba(5, 8, 14, 0.2), rgba(5, 8, 14, 0.36));
+      mix-blend-mode: multiply;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .tile.hit { background: var(--hit); }
@@ -903,7 +923,10 @@
     }
 
     .tile.tile-enter {
-      animation: tile-in 240ms ease both;
+      animation: tile-rotate-y-in 920ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    }
+    .tile.tile-enter::after {
+      animation: tile-back-tint 920ms ease both;
     }
 
     .actions {
@@ -978,9 +1001,26 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    @keyframes tile-in {
-      from { opacity: 0; transform: translateY(4px) scale(0.985); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+    @keyframes tile-rotate-y-in {
+      0% {
+        opacity: 0;
+        transform: rotateY(-360deg);
+      }
+      12% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 1;
+        transform: rotateY(0deg);
+      }
+    }
+
+    @keyframes tile-back-tint {
+      0% { opacity: 0; }
+      24% { opacity: 0.14; }
+      50% { opacity: 0.3; }
+      76% { opacity: 0.12; }
+      100% { opacity: 0; }
     }
 
     @keyframes status-pulse {
@@ -1214,7 +1254,7 @@
     const STATS_KEY = "flickle-stats";
     const THUMB_CACHE_KEY = "flickle-thumb-cache-v1";
     const RATING_CACHE_KEY = "flickle-rating-cache-v1";
-    const LANGUAGE_CACHE_KEY = "flickle-language-cache-v1";
+    const LANGUAGE_CACHE_KEY = "flickle-language-cache-v2";
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const storageFallback = {};
@@ -1313,7 +1353,7 @@
       { title: "Ant-Man and the Wasp", year: 2018, runtime: 119, genres: ["Action", "Adventure", "Science Fiction"], director: "Peyton Reed", cast: ["Paul Rudd", "Evangeline Lilly", "Michael Douglas", "Hannah John-Kamen", "Randall Park"], country: "USA", language: "English", franchise: "Ant-Man Collection", studio: "Marvel Studios", boxOffice: 622674139, voteCount: 14122, voteAverage: 6.9, popularity: 9.3 },
       { title: "Ant-Man and the Wasp: Quantumania", year: 2023, runtime: 125, genres: ["Action", "Adventure", "Science Fiction"], director: "Peyton Reed", cast: ["Paul Rudd", "Evangeline Lilly", "Michael Douglas", "Michelle Pfeiffer", "Jonathan Majors"], country: "USA", language: "English", franchise: "Ant-Man Collection", studio: "Marvel Studios", boxOffice: 476071180, voteCount: 5779, voteAverage: 6.2, popularity: 10.0 },
       { title: "Apocalypse Now", year: 1979, runtime: 147, genres: ["Drama", "War"], director: "Francis Ford Coppola", cast: ["Martin Sheen", "Marlon Brando", "Frederic Forrest", "Albert Hall", "Laurence Fishburne"], country: "USA", language: "Khmer", franchise: "", studio: "American Zoetrope", boxOffice: 150000000, voteCount: 9025, voteAverage: 8.3, popularity: 14.6 },
-      { title: "Apocalypto", year: 2006, runtime: 138, genres: ["Action", "Drama", "History"], director: "Mel Gibson", cast: ["Rudy Youngblood", "Raoul Max Trujillo", "Gerardo Taracena", "Iazua Larios", "Antonio Monroy"], country: "United Kingdom", language: "EN", franchise: "", studio: "Icon Entertainment International", boxOffice: 120654337, voteCount: 6212, voteAverage: 7.6, popularity: 52.5 },
+      { title: "Apocalypto", year: 2006, runtime: 138, genres: ["Action", "Drama", "History"], director: "Mel Gibson", cast: ["Rudy Youngblood", "Raoul Max Trujillo", "Gerardo Taracena", "Iazua Larios", "Antonio Monroy"], country: "United Kingdom", language: "Maya", franchise: "", studio: "Icon Entertainment International", boxOffice: 120654337, voteCount: 6212, voteAverage: 7.6, popularity: 52.5 },
       { title: "Apollo 13", year: 1995, runtime: 140, genres: ["Drama", "History"], director: "Ron Howard", cast: ["Tom Hanks", "Bill Paxton", "Kevin Bacon", "Gary Sinise", "Ed Harris"], country: "USA", language: "English", franchise: "", studio: "Universal Pictures", boxOffice: 355237933, voteCount: 5864, voteAverage: 7.5, popularity: 7.7 },
       { title: "Aquaman", year: 2018, runtime: 143, genres: ["Action", "Adventure", "Fantasy"], director: "James Wan", cast: ["Jason Momoa", "Amber Heard", "Willem Dafoe", "Patrick Wilson", "Nicole Kidman"], country: "USA", language: "English", franchise: "Aquaman Collection", studio: "Warner Bros. Pictures", boxOffice: 1152028393, voteCount: 14860, voteAverage: 6.9, popularity: 12.2 },
       { title: "Argo", year: 2012, runtime: 120, genres: ["Drama", "Thriller"], director: "Ben Affleck", cast: ["Ben Affleck", "Bryan Cranston", "Alan Arkin", "John Goodman", "Victor Garber"], country: "USA", language: "Arabic", franchise: "", studio: "Warner Bros. Pictures", boxOffice: 232300000, voteCount: 8908, voteAverage: 7.3, popularity: 7.4 },
@@ -2795,8 +2835,10 @@
           card.classList.add("latest-entry");
           const tiles = card.querySelectorAll(".tile");
           tiles.forEach((tile, tileIndex) => {
-            tile.classList.add("tile-enter");
-            tile.style.animationDelay = `${tileIndex * 24}ms`;
+            if (tile.classList.contains("hit") || tile.classList.contains("near")) {
+              tile.classList.add("tile-enter");
+              tile.style.animationDelay = `${tileIndex * 24}ms`;
+            }
           });
         }
 
@@ -2952,10 +2994,6 @@
 
     function pickLanguageFromTmdbDetail(detail) {
       const original = String(detail.original_language || "").trim().toLowerCase();
-      if (original && LANGUAGE_CODE_TO_NAME[original]) {
-        return LANGUAGE_CODE_TO_NAME[original];
-      }
-
       const spoken = Array.isArray(detail.spoken_languages) ? detail.spoken_languages : [];
       if (original) {
         const matching = spoken.find((item) => String(item.iso_639_1 || "").trim().toLowerCase() === original);
@@ -2965,6 +3003,9 @@
       }
       if (spoken.length > 0 && String(spoken[0].english_name || "").trim()) {
         return String(spoken[0].english_name).trim();
+      }
+      if (original && LANGUAGE_CODE_TO_NAME[original]) {
+        return LANGUAGE_CODE_TO_NAME[original];
       }
       return original ? original.toUpperCase() : "";
     }

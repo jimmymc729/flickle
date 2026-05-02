@@ -204,9 +204,6 @@ def pick_country(detail: dict[str, Any]) -> str:
 
 def pick_language(detail: dict[str, Any]) -> str:
     original = str(detail.get("original_language", "")).strip().lower()
-    if original in LANGUAGE_CODE_TO_NAME:
-        return LANGUAGE_CODE_TO_NAME[original]
-
     spoken = detail.get("spoken_languages") or []
     # Prefer a spoken language that matches the original language code.
     if original:
@@ -221,6 +218,8 @@ def pick_language(detail: dict[str, Any]) -> str:
         lang = str(spoken[0].get("english_name", "")).strip()
         if lang:
             return lang
+    if original in LANGUAGE_CODE_TO_NAME:
+        return LANGUAGE_CODE_TO_NAME[original]
     return original.upper() if original else "Unknown"
 
 
