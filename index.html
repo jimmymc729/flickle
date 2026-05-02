@@ -1137,7 +1137,7 @@
 <body>
   <main class="frame">
     <header class="topbar" aria-label="Top navigation">
-      <button class="menu-icon" id="menu-open-btn" type="button" aria-label="Open menu">&#9776;</button>
+      <button class="menu-icon" id="menu-open-btn" type="button" aria-label="Open menu" onclick="if(window.__flickleMenuOpenFallback){window.__flickleMenuOpenFallback();}else{var s=document.getElementById('side-menu');var o=document.getElementById('menu-overlay');if(s){s.classList.add('on');s.setAttribute('aria-hidden','false');}if(o){o.classList.add('on');}}">&#9776;</button>
       <img class="top-brand" src="favicon.png" alt="Flickle icon" />
       <div class="top-icons">
         <button id="stats-btn" class="icon-btn" type="button" title="Stats" aria-label="Stats">&#128202;</button>
@@ -1145,11 +1145,11 @@
         <button id="help-btn" class="icon-btn" type="button" title="Help" aria-label="Help">?</button>
       </div>
     </header>
-    <div id="menu-overlay" class="menu-overlay"></div>
+    <div id="menu-overlay" class="menu-overlay" onclick="if(window.__flickleMenuCloseFallback){window.__flickleMenuCloseFallback();}else{var s=document.getElementById('side-menu');var o=document.getElementById('menu-overlay');if(s){s.classList.remove('on');s.setAttribute('aria-hidden','true');}if(o){o.classList.remove('on');}}"></div>
     <aside id="side-menu" class="side-menu" aria-hidden="true">
       <div class="menu-head">
         <p class="menu-title">Flickle Menu</p>
-        <button id="menu-close-btn" class="menu-close" type="button" aria-label="Close menu">&times;</button>
+        <button id="menu-close-btn" class="menu-close" type="button" aria-label="Close menu" onclick="if(window.__flickleMenuCloseFallback){window.__flickleMenuCloseFallback();}else{var s=document.getElementById('side-menu');var o=document.getElementById('menu-overlay');if(s){s.classList.remove('on');s.setAttribute('aria-hidden','true');}if(o){o.classList.remove('on');}}">&times;</button>
       </div>
       <div class="menu-body">
         <div class="menu-list">
@@ -1192,7 +1192,7 @@
 
         <section class="game" id="game">
           <p class="guess-count" id="guess-count"></p>
-          <form class="guess-form" id="guess-form" autocomplete="off">
+          <form class="guess-form" id="guess-form" autocomplete="off" onsubmit="if(window.__flickleGuessFallback){window.__flickleGuessFallback();} return false;">
             <input class="guess-input" id="guess-input" list="movie-options" type="text" placeholder="Type a movie title..." aria-label="Movie title guess" />
             <button class="submit-btn" type="submit" aria-label="Guess movie">Guess</button>
           </form>
@@ -1256,6 +1256,8 @@
     const MAX_GUESSES = 10;
     const ANSWER_MIN_VOTES = 1200;
     const ANSWER_MIN_RATING = 6.2;
+    const JAM_MIN_VOTES = 1600;
+    const JAM_MIN_RATING = 6.4;
     const UI_SETTINGS_KEY = "flickle-ui-settings";
     const STATS_KEY = "flickle-stats";
     const THUMB_CACHE_KEY = "flickle-thumb-cache-v1";
@@ -1264,6 +1266,26 @@
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const storageFallback = {};
+    const FAMILIAR_CAST_NAMES = [
+      "Tom Hanks", "Leonardo DiCaprio", "Brad Pitt", "Morgan Freeman", "Robert De Niro",
+      "Al Pacino", "Denzel Washington", "Tom Cruise", "Will Smith", "Keanu Reeves",
+      "Matt Damon", "Ben Affleck", "Christian Bale", "Joaquin Phoenix", "Ryan Gosling",
+      "Ryan Reynolds", "Chris Evans", "Chris Hemsworth", "Chris Pratt", "Robert Downey Jr.",
+      "Mark Ruffalo", "Scarlett Johansson", "Samuel L. Jackson", "Harrison Ford", "Johnny Depp",
+      "Hugh Jackman", "Daniel Craig", "Jason Statham", "Vin Diesel", "Tom Hardy",
+      "Henry Cavill", "Idris Elba", "Michael B. Jordan", "Chadwick Boseman", "Zendaya",
+      "Timothee Chalamet", "Margot Robbie", "Emma Stone", "Emma Watson", "Jennifer Lawrence",
+      "Anne Hathaway", "Natalie Portman", "Meryl Streep", "Julia Roberts", "Sandra Bullock",
+      "Charlize Theron", "Cate Blanchett", "Emily Blunt", "Rachel McAdams", "Amy Adams",
+      "Angelina Jolie", "Cameron Diaz", "Jim Carrey", "Eddie Murphy", "Adam Sandler",
+      "Steve Carell", "Seth Rogen", "Jonah Hill", "Melissa McCarthy", "Reese Witherspoon",
+      "Viola Davis", "Lupita Nyong'o", "Gal Gadot", "Benedict Cumberbatch", "Andrew Garfield",
+      "Tobey Maguire", "Andrew Lincoln", "Cillian Murphy", "Florence Pugh", "Anya Taylor-Joy",
+      "Bill Murray", "Robin Williams", "Jack Nicholson", "Heath Ledger", "Gary Oldman",
+      "J.K. Simmons", "Miles Teller", "Paul Rudd", "Brie Larson", "Pedro Pascal"
+    ];
+    // Must be initialized before DATA_AUDIT runs to avoid TDZ crashes.
+    let castFamiliaritySetCache = null;
 
     function storageGet(key) {
       try {
@@ -2441,7 +2463,11 @@
         ? `jam-${jamSeed}`
         : formatPuzzleKey(puzzleDate);
     const dailyAnswerPool = DATA_AUDIT.answerPool;
-    const answer = customMode ? customMovie : dailyAnswerPool[hash(puzzleKey) % dailyAnswerPool.length];
+    const jamAnswerPool = Array.isArray(DATA_AUDIT.jamAnswerPool) && DATA_AUDIT.jamAnswerPool.length
+      ? DATA_AUDIT.jamAnswerPool
+      : dailyAnswerPool;
+    const answerPoolForMode = gameMode === "jam" ? jamAnswerPool : dailyAnswerPool;
+    const answer = customMode ? customMovie : pickWeightedMovie(answerPoolForMode, puzzleKey, gameMode);
     const storagePrefix = customMode
       ? "flickle-custom-state"
       : gameMode === "jam"
@@ -2513,10 +2539,12 @@
       if (els.playBtn.dataset.bound === "1") return;
       els.playBtn.dataset.bound = "1";
       window.__flicklePlayFallback = startOrResumeGame;
+      window.__flickleGuessFallback = () => submitGuess(els.guessInput.value);
 
       els.playBtn.addEventListener("click", startOrResumeGame);
 
       els.guessForm.addEventListener("submit", (event) => {
+        if (event.defaultPrevented) return;
         event.preventDefault();
         submitGuess(els.guessInput.value);
       });
@@ -3548,13 +3576,25 @@
     }
 
     function bindTopShell() {
-      els.menuOpenBtn.addEventListener("click", openMenu);
-      els.menuCloseBtn.addEventListener("click", closeMenu);
-      els.menuOverlay.addEventListener("click", closeMenu);
+      const bind = (element, eventName, handler, label) => {
+        if (!element || typeof element.addEventListener !== "function") {
+          console.warn(`Flickle shell bind skipped: missing ${label}`);
+          return false;
+        }
+        element.addEventListener(eventName, handler);
+        if (eventName === "click" && element.dataset) {
+          element.dataset.shellBound = "1";
+        }
+        return true;
+      };
 
-      els.statsBtn.addEventListener("click", () => showStatsModal("Stats"));
-      els.helpBtn.addEventListener("click", () => showHelpModal());
-      els.audioBtn.addEventListener("click", () => {
+      bind(els.menuOpenBtn, "click", openMenu, "menu-open-btn");
+      bind(els.menuCloseBtn, "click", closeMenu, "menu-close-btn");
+      bind(els.menuOverlay, "click", closeMenu, "menu-overlay");
+
+      bind(els.statsBtn, "click", () => showStatsModal("Stats"), "stats-btn");
+      bind(els.helpBtn, "click", () => showHelpModal(), "help-btn");
+      bind(els.audioBtn, "click", () => {
         uiSettings.soundEnabled = !uiSettings.soundEnabled;
         persistUiSettings(uiSettings);
         applyUiSettings();
@@ -3562,36 +3602,58 @@
         if (uiSettings.soundEnabled) {
           playUiSound("toggle-on");
         }
-      });
+      }, "audio-btn");
 
-      els.menuHome.addEventListener("click", () => {
+      bind(els.menuHome, "click", () => {
         state.started = false;
         persistState();
         closeMenu();
         renderAll();
-      });
-      els.menuPrivacy.addEventListener("click", () => {
+      }, "menu-home");
+      bind(els.menuPrivacy, "click", () => {
         showModal("Privacy", "Flickle stores only local gameplay data in your browser (no backend in this build).");
-      });
-      els.modeDaily.addEventListener("click", () => {
+      }, "menu-privacy");
+      bind(els.modeDaily, "click", () => {
         location.search = "";
-      });
-      els.modeRewind.addEventListener("click", () => {
+      }, "mode-daily");
+      bind(els.modeRewind, "click", () => {
         const daysAgo = 1 + Math.floor(Math.random() * 7);
         location.search = `?mode=rewind&offset=-${daysAgo}`;
-      });
-      els.modeJam.addEventListener("click", () => {
+      }, "mode-rewind");
+      bind(els.modeJam, "click", () => {
         const seed = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
         location.search = `?mode=jam&seed=${encodeURIComponent(seed)}`;
-      });
-      els.modeCreate.addEventListener("click", () => {
+      }, "mode-jam");
+      bind(els.modeCreate, "click", () => {
         showCreateModal();
-      });
+      }, "mode-create");
 
-      els.modalOverlay.addEventListener("click", (event) => {
+      bind(els.modalOverlay, "click", (event) => {
         if (event.target === els.modalOverlay) closeModal();
-      });
-      els.modalCloseBtn.addEventListener("click", closeModal);
+      }, "modal-overlay");
+      bind(els.modalCloseBtn, "click", closeModal, "modal-close-btn");
+
+      // Delegated fallback: keeps top controls working even if one direct bind misses.
+      if (!window.__flickleTopShellDelegatedBound) {
+        window.__flickleTopShellDelegatedBound = true;
+        document.addEventListener("click", (event) => {
+          const trigger = event.target && event.target.closest
+            ? event.target.closest("#menu-open-btn, #menu-close-btn, #menu-overlay, #stats-btn, #help-btn, #audio-btn")
+            : null;
+          if (!trigger) return;
+          if (trigger.dataset && trigger.dataset.shellBound === "1") return;
+
+          if (trigger.id === "menu-open-btn") openMenu();
+          else if (trigger.id === "menu-close-btn" || trigger.id === "menu-overlay") closeMenu();
+          else if (trigger.id === "stats-btn") showStatsModal("Stats");
+          else if (trigger.id === "help-btn") showHelpModal();
+          else if (trigger.id === "audio-btn") {
+            uiSettings.soundEnabled = !uiSettings.soundEnabled;
+            persistUiSettings(uiSettings);
+            applyUiSettings();
+          }
+        });
+      }
     }
 
     function openMenu() {
@@ -3605,6 +3667,10 @@
       els.menuOverlay.classList.remove("on");
       els.sideMenu.setAttribute("aria-hidden", "true");
     }
+
+    // Expose hard fallbacks used by inline handlers when regular binding gets interrupted.
+    window.__flickleMenuOpenFallback = openMenu;
+    window.__flickleMenuCloseFallback = closeMenu;
 
     function showModal(title, body, allowHtml = false) {
       els.modalTitle.textContent = title;
@@ -3648,8 +3714,11 @@
       const body = [
         `Movies total: ${MOVIES.length}`,
         `Daily-ready movies: ${DATA_AUDIT.answerPool.length}`,
+        `Jam-ready movies (strong cast familiarity): ${DATA_AUDIT.jamAnswerPool.length}`,
         `Mainstream threshold: voteCount >= ${ANSWER_MIN_VOTES} and voteAverage >= ${ANSWER_MIN_RATING.toFixed(1)}`,
+        `Jam threshold: voteCount >= ${JAM_MIN_VOTES} and voteAverage >= ${JAM_MIN_RATING.toFixed(1)}`,
         `Mainstream movies found: ${DATA_AUDIT.mainstreamCount}`,
+        `High cast-familiarity movies: ${DATA_AUDIT.castFamiliarCount}`,
         `Missing Oscar noms: ${DATA_AUDIT.missingOscarCount}`,
         `Missing studio: ${DATA_AUDIT.missingStudioCount}`,
         `Missing box office: ${DATA_AUDIT.missingBoxOfficeCount}`,
@@ -4079,11 +4148,52 @@
       }
     }
 
+    function getCastFamiliarityScore(movie) {
+      const cast = Array.isArray(movie?.cast) ? movie.cast : [];
+      if (!cast.length) return 0;
+      const familiarSet = getCastFamiliaritySet();
+      let score = 0;
+
+      for (let i = 0; i < Math.min(cast.length, 5); i += 1) {
+        const name = normalize(cast[i]);
+        if (!name) continue;
+        if (!familiarSet.has(name)) continue;
+        if (i === 0) score += 4;
+        else if (i === 1) score += 3;
+        else score += 2;
+      }
+
+      const voteCount = Number.isFinite(movie?.voteCount) ? movie.voteCount : 0;
+      const voteAverage = Number.isFinite(movie?.voteAverage) ? movie.voteAverage : 0;
+      const popularity = Number.isFinite(movie?.popularity) ? movie.popularity : 0;
+      score += Math.max(0, Math.min(4, Math.floor(Math.log10(Math.max(1, voteCount))) - 2));
+      if (voteAverage >= 7.5) score += 2;
+      else if (voteAverage >= 7.0) score += 1;
+      if (popularity >= 20) score += 2;
+      else if (popularity >= 10) score += 1;
+
+      return score;
+    }
+
+    function getCastFamiliaritySet() {
+      if (castFamiliaritySetCache) return castFamiliaritySetCache;
+      castFamiliaritySetCache = new Set(FAMILIAR_CAST_NAMES.map((name) => normalize(name)).filter(Boolean));
+      return castFamiliaritySetCache;
+    }
+
+    function getMovieCastScore(movie) {
+      if (!movie || typeof movie !== "object") return 0;
+      if (Number.isFinite(movie.castScore)) return movie.castScore;
+      return getCastFamiliarityScore(movie);
+    }
+
     function validateDataset(movies, nomsByTitle) {
       const issues = [];
       const seen = new Set();
       const answerPool = [];
+      const jamAnswerPool = [];
       let mainstreamCount = 0;
+      let castFamiliarCount = 0;
       let missingOscarCount = 0;
       let missingStudioCount = 0;
       let missingBoxOfficeCount = 0;
@@ -4127,13 +4237,27 @@
         if (mainstream) mainstreamCount += 1;
 
         // Oscar nominations are optional; mainstream threshold governs daily answers.
-        if (validFields && mainstream) answerPool.push(movie);
+        if (validFields && mainstream) {
+          movie.castScore = getCastFamiliarityScore(movie);
+          if (movie.castScore >= 8) castFamiliarCount += 1;
+          answerPool.push(movie);
+          if (movie.castScore >= 8 && voteCount >= JAM_MIN_VOTES && voteAverage >= JAM_MIN_RATING) {
+            jamAnswerPool.push(movie);
+          }
+        }
       }
+
+      const safeDailyPool = answerPool.length ? answerPool : movies.slice();
+      const safeJamPool = jamAnswerPool.length
+        ? jamAnswerPool
+        : safeDailyPool.filter((movie) => getMovieCastScore(movie) >= 7);
 
       return {
         issues,
-        answerPool: answerPool.length ? answerPool : movies.slice(),
+        answerPool: safeDailyPool,
+        jamAnswerPool: safeJamPool.length ? safeJamPool : safeDailyPool,
         mainstreamCount,
+        castFamiliarCount,
         missingOscarCount,
         missingStudioCount,
         missingBoxOfficeCount,
@@ -4159,6 +4283,52 @@
         value = (value * 31 + text.charCodeAt(i)) >>> 0;
       }
       return value;
+    }
+
+    function seededRandom(seed) {
+      let t = seed >>> 0;
+      return () => {
+        t += 0x6D2B79F5;
+        let x = Math.imul(t ^ (t >>> 15), 1 | t);
+        x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function computeAnswerWeight(movie, mode) {
+      const castScore = getMovieCastScore(movie);
+      const voteCount = Number.isFinite(movie.voteCount) ? movie.voteCount : 0;
+      const voteAverage = Number.isFinite(movie.voteAverage) ? movie.voteAverage : 0;
+      const popularity = Number.isFinite(movie.popularity) ? movie.popularity : 0;
+      const voteBonus = Math.max(0, Math.min(5, Math.log10(Math.max(1, voteCount)) - 2));
+      const ratingBonus = Math.max(0, voteAverage - ANSWER_MIN_RATING);
+      const popBonus = Math.max(0, Math.min(4, popularity / 12));
+
+      if (mode === "jam") {
+        return 1 + castScore * 2.2 + voteBonus * 1.4 + ratingBonus * 2.1 + popBonus * 1.4;
+      }
+      return 1 + castScore * 1.2 + voteBonus * 0.9 + ratingBonus * 1.1 + popBonus * 0.9;
+    }
+
+    function pickWeightedMovie(pool, seedKey, mode) {
+      const fallbackPool = Array.isArray(pool) && pool.length ? pool : MOVIES;
+      const rand = seededRandom(hash(`${seedKey}|${mode}|flickle-cast-v1`));
+      let totalWeight = 0;
+      const weights = fallbackPool.map((movie) => {
+        const weight = Math.max(0.001, computeAnswerWeight(movie, mode));
+        totalWeight += weight;
+        return weight;
+      });
+      if (!Number.isFinite(totalWeight) || totalWeight <= 0) {
+        return fallbackPool[hash(seedKey) % fallbackPool.length];
+      }
+
+      let target = rand() * totalWeight;
+      for (let i = 0; i < fallbackPool.length; i += 1) {
+        target -= weights[i];
+        if (target <= 0) return fallbackPool[i];
+      }
+      return fallbackPool[fallbackPool.length - 1];
     }
 
     function escapeHtml(value) {
