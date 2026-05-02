@@ -1058,6 +1058,9 @@
       .stage {
         width: 100%;
         padding: 10px 0 8px;
+        overflow: visible;
+        min-height: auto;
+        -webkit-overflow-scrolling: auto;
       }
       .game {
         max-width: none;
@@ -1085,7 +1088,12 @@
 
     @media (max-width: 520px) {
       body { padding: 0; }
-      .frame { height: var(--app-height); border-radius: 0; }
+      .frame {
+        min-height: var(--app-height);
+        height: auto;
+        border-radius: 0;
+        overflow: visible;
+      }
       .top-icons { right: 10px; gap: 9px; }
       .canvas { padding-bottom: calc(14px + var(--safe-bottom)); }
       .stage { padding-top: 10px; }
@@ -1119,6 +1127,19 @@
       .movie-title { font-size: 1rem; }
       .logo-wrap { padding: 0 54px; }
       .logo-wrap::before, .logo-wrap::after { width: 42px; }
+    }
+
+    @media (pointer: coarse) and (max-width: 900px) {
+      .frame {
+        min-height: var(--app-height);
+        height: auto;
+        overflow: visible;
+      }
+      .stage {
+        overflow: visible;
+        min-height: auto;
+        -webkit-overflow-scrolling: auto;
+      }
     }
   </style>
 </head>
