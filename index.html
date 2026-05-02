@@ -96,14 +96,6 @@
       touch-action: manipulation;
     }
 
-    .top-brand {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      object-fit: cover;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 14px rgba(111, 92, 255, 0.26);
-    }
-
     .top-icons {
       position: absolute;
       right: 16px;
@@ -343,14 +335,16 @@
 
     .canvas {
       display: grid;
-      grid-template-columns: 1fr minmax(280px, 480px) 1fr;
+      grid-template-columns: minmax(280px, 480px);
       align-items: stretch;
       gap: 8px;
       padding: calc(8px + var(--safe-top)) calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
       min-height: 0;
+      justify-content: center;
     }
 
     .rail {
+      display: none;
       width: clamp(150px, 18vw, 220px);
       border-radius: 9px;
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1138,7 +1132,6 @@
   <main class="frame">
     <header class="topbar" aria-label="Top navigation">
       <button class="menu-icon" id="menu-open-btn" type="button" aria-label="Open menu" onclick="if(window.__flickleMenuOpenFallback){window.__flickleMenuOpenFallback();}else{var s=document.getElementById('side-menu');var o=document.getElementById('menu-overlay');if(s){s.classList.add('on');s.setAttribute('aria-hidden','false');}if(o){o.classList.add('on');}}">&#9776;</button>
-      <img class="top-brand" src="favicon.png" alt="Flickle icon" />
       <div class="top-icons">
         <button id="stats-btn" class="icon-btn" type="button" title="Stats" aria-label="Stats">&#128202;</button>
         <button id="audio-btn" class="icon-btn" type="button" title="Audio" aria-label="Audio toggle">&#128266;</button>
