@@ -2531,6 +2531,7 @@
     }
 
     function renderAll() {
+      sanitizeStateGuesses();
       const introLine = customMode
         ? `${MAX_GUESSES} guesses, friend challenge. Can you solve it?`
         : gameMode === "jam"
@@ -2672,12 +2673,7 @@
         return;
       }
 
-      const safeGuesses = state.guesses.filter((guess) => guess && typeof guess === "object" && typeof guess.title === "string");
-      if (safeGuesses.length !== state.guesses.length) {
-        state.guesses = safeGuesses;
-        persistState();
-      }
-
+      const safeGuesses = sanitizeStateGuesses();
       for (const [index, guess] of [...safeGuesses].reverse().entries()) {
         let year;
         let runtime;
@@ -3080,7 +3076,10 @@
 
       const lines = text.split("\n");
       els.sharePreviewTitle.textContent = lines[0] || "Flickle";
-      const rows = lines.slice(1).filter(Boolean);
+      const rows = lines
+        .slice(1)
+        .map((line) => line.trim())
+        .filter((line) => line && /^[🟩🟨⬛]+$/.test(line));
       els.sharePreviewGrid.innerHTML = "";
 
       for (const rowText of rows) {
@@ -3436,6 +3435,7 @@
     }
 
     function buildShareText() {
+      const safeGuesses = sanitizeStateGuesses();
       const score = state.won ? state.guesses.length : "X";
       const modeTag = customMode
         ? " [custom]"
@@ -3444,29 +3444,53 @@
           : gameMode === "rewind"
             ? " [rewind]"
             : "";
-      const lines = [`Flickle${modeTag} ${puzzleKey} ${score}/${MAX_GUESSES}`];
+      const lines = [`🎬 Flickle${modeTag} ${puzzleKey} ${score}/${MAX_GUESSES}`];
       if (!customMode) {
         const stats = loadStats();
         lines.push(`🔥 Streak: ${stats.currentStreak}`);
       }
-      for (const guess of state.guesses) {
-        const row = [
-          compareYear(guess.year, answer.year).state,
-          compareRuntime(guess.runtime, answer.runtime).state,
-          compareTitleWordCount(guess.title, answer.title).state,
-          compareGenre(guess.genres, answer.genres).state,
-          compareExact(guess.director, answer.director).state,
-          compareCastMatches(guess.cast, answer.cast).state,
-          compareStudio(guess.studio, answer.studio).state,
-          compareAnimated(guess, answer).state,
-          compareBoxOffice(guess.boxOffice, answer.boxOffice).state,
-          compareCountry(guess, answer).state,
-          compareLanguage(guess, answer).state,
-          compareFranchise(guess.franchise, answer.franchise).state
-        ].map((s) => s === "hit" ? "🟩" : s === "near" ? "🟨" : "⬛").join("");
-        lines.push(row);
+      for (const guess of safeGuesses) {
+        try {
+          const row = [
+            compareYear(guess.year, answer.year).state,
+            compareRuntime(guess.runtime, answer.runtime).state,
+            compareTitleWordCount(guess.title, answer.title).state,
+            compareGenre(guess.genres, answer.genres).state,
+            compareExact(guess.director, answer.director).state,
+            compareCastMatches(guess.cast, answer.cast).state,
+            compareStudio(guess.studio, answer.studio).state,
+            compareAnimated(guess, answer).state,
+            compareBoxOffice(guess.boxOffice, answer.boxOffice).state,
+            compareCountry(guess, answer).state,
+            compareLanguage(guess, answer).state,
+            compareFranchise(guess.franchise, answer.franchise).state
+          ].map((s) => s === "hit" ? "🟩" : s === "near" ? "🟨" : "⬛").join("");
+          lines.push(row);
+        } catch (error) {
+          console.warn("Skipping invalid share row due to data error:", error, guess);
+        }
       }
+      lines.push("");
+      lines.push("Play: https://flickle.io");
       return lines.join("\n");
+    }
+
+    function sanitizeStateGuesses() {
+      const safeGuesses = state.guesses
+        .map((guess) => {
+          if (guess && typeof guess === "object" && typeof guess.title === "string") return guess;
+          if (typeof guess === "string") return movieByNormTitle.get(normalize(guess)) || null;
+          if (guess && typeof guess === "object" && typeof guess.name === "string") {
+            return movieByNormTitle.get(normalize(guess.name)) || null;
+          }
+          return null;
+        })
+        .filter((guess) => guess && typeof guess.title === "string");
+      if (safeGuesses.length !== state.guesses.length) {
+        state.guesses = safeGuesses;
+        persistState();
+      }
+      return safeGuesses;
     }
 
     function normalize(value) {
