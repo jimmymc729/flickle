@@ -498,7 +498,7 @@
       color: #1c1f2a;
       border-radius: 999px;
       min-height: 48px;
-      padding: 12px 52px 12px 16px;
+      padding: 12px 92px 12px 16px;
       font-size: 1.09rem;
       outline: none;
       transition: box-shadow 130ms ease, border-color 130ms ease;
@@ -521,20 +521,25 @@
 
     .submit-btn {
       position: absolute;
-      right: 6px;
+      right: 7px;
       top: 50%;
       transform: translateY(-50%);
       border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(180deg, #edf0f6, #d9deea);
-      color: #39425b;
-      font-size: 1.06rem;
+      min-width: 72px;
+      height: 36px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #e7ebf4, #d2d8e8);
+      color: #2f3953;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
       cursor: pointer;
       line-height: 1;
       touch-action: manipulation;
+      transition: transform 100ms ease, filter 120ms ease;
     }
+    .submit-btn:hover { filter: brightness(1.05); }
+    .submit-btn:active { transform: translateY(-50%) scale(0.98); }
 
     .helper {
       margin: 10px 0 0;
@@ -1141,8 +1146,8 @@
         <section class="game" id="game">
           <p class="guess-count" id="guess-count"></p>
           <form class="guess-form" id="guess-form" autocomplete="off">
-            <input class="guess-input" id="guess-input" list="movie-options" type="text" placeholder="Type a guess here..." aria-label="Movie title guess" />
-            <button class="submit-btn" type="submit" aria-label="Submit guess">&#9711;</button>
+            <input class="guess-input" id="guess-input" list="movie-options" type="text" placeholder="Type a movie title..." aria-label="Movie title guess" />
+            <button class="submit-btn" type="submit" aria-label="Guess movie">Guess</button>
           </form>
           <datalist id="movie-options"></datalist>
 
@@ -2430,7 +2435,11 @@
       console.error("Flickle shell init failed:", error);
     }
     bindCoreInteractions();
-    renderAll();
+    // Defer first paint until the script fully initializes all constants/functions.
+    // This avoids refresh-time clue card drops when restoring in-progress games.
+    window.setTimeout(() => {
+      renderAll();
+    }, 0);
 
     function startOrResumeGame() {
       const wasStarted = state.started;
@@ -2643,7 +2652,7 @@
           els.guessInput.placeholder = state.won ? "Daily solved — nice work." : "Daily complete.";
         }
       } else {
-        els.guessInput.placeholder = "Type a guess here...";
+        els.guessInput.placeholder = "Type a movie title...";
       }
       const submitBtn = els.guessForm.querySelector("button[type='submit']");
       submitBtn.disabled = state.finished;
@@ -2985,8 +2994,6 @@
       return { label: guessValue, state: same ? "hit" : "miss" };
     }
 
-    const RATING_ORDER = ["G", "PG", "PG-13", "R", "NC-17"];
-
     function normalizeRating(value) {
       const cleaned = String(value || "")
         .trim()
@@ -3009,13 +3016,14 @@
     }
 
     function compareRating(guessMovie, targetMovie) {
+      const ratingOrder = ["G", "PG", "PG-13", "R", "NC-17"];
       const guessRating = getMovieRating(guessMovie);
       const targetRating = getMovieRating(targetMovie);
       if (!guessRating || !targetRating) return { label: guessRating || "N/A", state: "na" };
       if (guessRating === targetRating) return { label: guessRating, state: "hit" };
 
-      const guessIndex = RATING_ORDER.indexOf(guessRating);
-      const targetIndex = RATING_ORDER.indexOf(targetRating);
+      const guessIndex = ratingOrder.indexOf(guessRating);
+      const targetIndex = ratingOrder.indexOf(targetRating);
       if (guessIndex !== -1 && targetIndex !== -1) {
         const diff = Math.abs(guessIndex - targetIndex);
         const arrow = guessIndex < targetIndex ? "↑" : "↓";
