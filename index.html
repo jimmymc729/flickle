@@ -12,6 +12,8 @@
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
   <title>Flickle - Daily Movie Guess</title>
   <style>
     :root {
@@ -77,6 +79,10 @@
     }
 
     .menu-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
       font-size: 1.45rem;
       letter-spacing: 1px;
       color: #e9ebef;
@@ -88,6 +94,14 @@
       height: 44px;
       border-radius: 999px;
       touch-action: manipulation;
+    }
+
+    .top-brand {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 14px rgba(111, 92, 255, 0.26);
     }
 
     .top-icons {
@@ -398,38 +412,42 @@
     }
 
     .logo-wrap {
-      margin: 0 auto 18px;
-      width: fit-content;
+      margin: 0 auto 20px;
+      width: 100%;
+      text-align: center;
       position: relative;
-      padding: 0 72px;
+      isolation: isolate;
     }
 
-    .logo-wrap::before,
-    .logo-wrap::after {
+    .logo-wrap::before {
       content: "";
       position: absolute;
-      top: 50%;
-      width: 58px;
-      height: 24px;
-      transform: translateY(-50%);
-      background-image: repeating-linear-gradient(
-        90deg,
-        rgba(143, 123, 255, 0.92) 0 3px,
-        transparent 3px 8px
-      );
-      opacity: 0.9;
+      left: 50%;
+      top: 48%;
+      transform: translate(-50%, -50%);
+      width: min(88%, 360px);
+      height: 130px;
+      border-radius: 999px;
+      background:
+        radial-gradient(closest-side, rgba(128, 93, 255, 0.72), rgba(128, 93, 255, 0.34) 52%, rgba(128, 93, 255, 0) 88%);
+      filter: blur(18px);
+      z-index: -1;
+      pointer-events: none;
     }
 
-    .logo-wrap::before { left: 0; }
-    .logo-wrap::after { right: 0; }
-
-    .logo {
-      margin: 0;
-      font-size: clamp(2rem, 5vw, 2.9rem);
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      color: #c4b8ff;
-      text-shadow: 0 0 20px rgba(143, 123, 255, 0.35);
+    .brand-logo {
+      display: block;
+      margin: 0 auto;
+      width: 86%;
+      max-width: 340px;
+      height: auto;
+      filter:
+        drop-shadow(0 0 20px rgba(126, 93, 255, 0.82))
+        drop-shadow(0 0 44px rgba(126, 93, 255, 0.48))
+        drop-shadow(0 8px 22px rgba(0, 0, 0, 0.36))
+        contrast(1.18)
+        brightness(1.14)
+        saturate(1.12);
     }
 
     .intro-copy {
@@ -1095,8 +1113,11 @@
       }
       .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .movie-title { font-size: 1rem; }
-      .logo-wrap { padding: 0 54px; }
-      .logo-wrap::before, .logo-wrap::after { width: 42px; }
+      .brand-logo { width: 90%; max-width: 300px; }
+      .logo-wrap::before {
+        width: min(92%, 320px);
+        height: 118px;
+      }
     }
 
     @media (pointer: coarse) and (max-width: 900px) {
@@ -1117,6 +1138,7 @@
   <main class="frame">
     <header class="topbar" aria-label="Top navigation">
       <button class="menu-icon" id="menu-open-btn" type="button" aria-label="Open menu">&#9776;</button>
+      <img class="top-brand" src="favicon.png" alt="Flickle icon" />
       <div class="top-icons">
         <button id="stats-btn" class="icon-btn" type="button" title="Stats" aria-label="Stats">&#128202;</button>
         <button id="audio-btn" class="icon-btn" type="button" title="Audio" aria-label="Audio toggle">&#128266;</button>
@@ -1161,7 +1183,7 @@
       <section class="stage">
         <section class="intro" id="intro">
           <div class="logo-wrap">
-            <h1 class="logo">Flickle</h1>
+            <img src="logo.png" alt="Flickle logo" class="brand-logo" />
           </div>
           <p class="intro-copy" id="intro-subtitle"></p>
           <button class="play-btn" id="play-btn" type="button" onclick="if(window.__flicklePlayFallback){window.__flicklePlayFallback();}else{var intro=document.getElementById('intro');var game=document.getElementById('game');if(intro){intro.classList.add('hidden');intro.style.display='none';}if(game){game.classList.add('on');game.style.display='block';}}">PLAY</button>
