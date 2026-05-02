@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-1B0MHEC0F9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-1B0MHEC0F9');
+  </script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Flickle - Daily Movie Guess</title>
@@ -2432,6 +2441,11 @@
       persistState();
       els.guessInput.focus();
       if (!wasStarted) {
+        trackAnalyticsEvent("start_game", {
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey
+        });
         playUiSound("start");
       }
     }
@@ -2449,6 +2463,13 @@
       });
 
       function handleShareClick(preferNativeShare, targetBtn) {
+        trackAnalyticsEvent("share_clicked", {
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey,
+          context: targetBtn === els.finishShareBtn ? "result_screen" : "in_game",
+          native_share: preferNativeShare ? "yes" : "no"
+        });
         flashActionButton(targetBtn, "Copied!");
         shareResult(Boolean(preferNativeShare), targetBtn).catch(() => {
           // Keep UX deterministic: button still shows "Copied!" even if copy fails.
@@ -2501,15 +2522,34 @@
 
       state.guesses.push(guessMovie);
       els.guessInput.value = "";
+      trackAnalyticsEvent("guess_submitted", {
+        game_mode: gameMode,
+        custom_mode: customMode ? "yes" : "no",
+        puzzle_key: puzzleKey,
+        guess_title: guessMovie.title,
+        guess_number: state.guesses.length
+      });
 
       if (normalize(guessMovie.title) === normalize(answer.title)) {
         state.finished = true;
         state.won = true;
         state.message = `Correct. You solved Flickle in ${state.guesses.length}/${MAX_GUESSES}.`;
+        trackAnalyticsEvent("win_game", {
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey,
+          guesses_used: state.guesses.length
+        });
       } else if (state.guesses.length >= MAX_GUESSES && !isJamMode) {
         state.finished = true;
         state.won = false;
         state.message = `Out of guesses. Today's movie was ${answer.title}.`;
+        trackAnalyticsEvent("lose_game", {
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey,
+          guesses_used: state.guesses.length
+        });
       } else {
         state.message = isJamMode
           ? `${state.guesses.length} guesses made. Keep going.`
@@ -2930,6 +2970,15 @@
       });
     }
 
+    function trackAnalyticsEvent(name, params = {}) {
+      try {
+        if (typeof window.gtag !== "function") return;
+        window.gtag("event", name, params);
+      } catch (error) {
+        console.warn("Analytics event failed:", name, error);
+      }
+    }
+
     async function shareResult(preferNativeShare, sourceBtn = null) {
       const text = buildShareText();
       const canNativeShare = preferNativeShare && typeof navigator.share === "function" && location.protocol !== "file:";
@@ -2938,6 +2987,12 @@
           await navigator.share({
             title: "Flickle Result",
             text
+          });
+          trackAnalyticsEvent("share_success", {
+            method: "native",
+            game_mode: gameMode,
+            custom_mode: customMode ? "yes" : "no",
+            puzzle_key: puzzleKey
           });
           setStatus("Result shared.", "success");
           playUiSound("share");
@@ -2949,9 +3004,21 @@
       }
       const copyResult = await copyTextWithFallback(text);
       if (copyResult === "copied") {
+        trackAnalyticsEvent("share_success", {
+          method: "clipboard",
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey
+        });
         setStatus("Result copied to clipboard.", "success");
         playUiSound("share");
       } else {
+        trackAnalyticsEvent("share_failed", {
+          method: "clipboard",
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey
+        });
         setStatus("Copy limited in this browser tab. Try in a hosted version for one-tap copy.", "complete");
       }
     }
