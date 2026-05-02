@@ -1208,6 +1208,7 @@
     const UI_SETTINGS_KEY = "flickle-ui-settings";
     const STATS_KEY = "flickle-stats";
     const THUMB_CACHE_KEY = "flickle-thumb-cache-v1";
+    const RATING_CACHE_KEY = "flickle-rating-cache-v1";
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const storageFallback = {};
@@ -2356,6 +2357,8 @@
     for (const m of MOVIES) movieByNormTitle.set(normalize(m.title), m);
     const DATA_AUDIT = validateDataset(MOVIES, OSCAR_NOMS_BY_TITLE);
     const thumbCache = loadThumbCache();
+    const ratingCache = loadRatingCache();
+    const ratingLookupsInFlight = new Set();
 
     const orderedTitles = MOVIES.map((m) => m.title).sort((a, b) => a.localeCompare(b));
     for (const title of orderedTitles) {
@@ -2491,7 +2494,7 @@
         els.rulesText.textContent = "10 guesses. Year, runtime, title words, and box office include directional hints.";
         els.rulesText.dataset.expanded = "0";
       } else {
-        els.rulesText.textContent = "Year: green exact, yellow within 5 years, arrows show later/earlier. Runtime: green exact, yellow within 10 minutes, arrows show longer/shorter. Title words: green exact, yellow within 1 word, arrows show more/fewer words. Genre: any overlap is match. Director: exact match. Cast: any shared actor counts as a match and each shared actor is shown in its own tile. Studio: green exact. Animated: green when both are animated or both are not. Box office: bucketed range with higher/lower arrows and yellow when one bucket away. Country: green exact. Language: green exact. Franchise: binary yes/no; green when yes/no matches.";
+        els.rulesText.textContent = "Year: green exact, yellow within 5 years, arrows show later/earlier. Runtime: green exact, yellow within 10 minutes, arrows show longer/shorter. Title words: green exact, yellow within 1 word, arrows show more/fewer words. Genre: any overlap is match, and multiple shared genres appear as separate match tiles. Director: exact match. Cast: any shared actor counts as a match and each shared actor is shown in its own tile. Studio: green exact. Rating: green exact, yellow when one rating step away (PG ↔ PG-13, etc.). Box office: bucketed range with higher/lower arrows and yellow when one bucket away. Country: green exact. Language: green exact. Franchise: binary yes/no; green when yes/no matches.";
         els.rulesText.dataset.expanded = "1";
       }
     });
@@ -2722,7 +2725,7 @@
         let director;
         let cast;
         let studio;
-        let animated;
+        let rating;
         let boxOffice;
         let country;
         let language;
@@ -2735,7 +2738,7 @@
           director = compareExact(guess.director, answer.director);
           cast = compareCastMatches(guess.cast, answer.cast);
           studio = compareStudio(guess.studio, answer.studio);
-          animated = compareAnimated(guess, answer);
+          rating = compareRating(guess, answer);
           boxOffice = compareBoxOffice(guess.boxOffice, answer.boxOffice);
           country = compareCountry(guess, answer);
           language = compareLanguage(guess, answer);
@@ -2760,11 +2763,11 @@
             ${tileHtml("Year", year.label, year.state)}
             ${tileHtml("Runtime", runtime.label, runtime.state)}
             ${tileHtml("Title Words", titleWords.label, titleWords.state)}
-            ${tileHtml("Genre", genre.label, genre.state)}
+            ${buildGenreTilesHtml(genre)}
             ${tileHtml("Director", director.label, director.state)}
             ${buildCastTilesHtml(cast)}
             ${tileHtml("Studio", studio.label, studio.state)}
-            ${tileHtml("Animated", animated.label, animated.state)}
+            ${tileHtml("Rating", rating.label, rating.state)}
             ${tileHtml("Box Office", boxOffice.label, boxOffice.state)}
             ${tileHtml("Country", country.label, country.state)}
             ${tileHtml("Language", language.label, language.state)}
@@ -2783,7 +2786,9 @@
 
         els.cards.appendChild(card);
         hydrateAvatar(card, guess);
+        ensureRatingDataForMovie(guess);
       }
+      ensureRatingDataForMovie(answer);
     }
 
     function hydrateAvatar(card, movie) {
@@ -2810,6 +2815,84 @@
       });
     }
 
+    async function ensureRatingDataForMovie(movie) {
+      if (!movie || typeof movie !== "object") return;
+      if (getMovieRating(movie)) return;
+
+      const cacheKey = movieCacheKey(movie);
+      if (ratingLookupsInFlight.has(cacheKey)) return;
+      ratingLookupsInFlight.add(cacheKey);
+
+      try {
+        const fetched = await fetchRatingForMovie(movie);
+        const normalized = normalizeRating(fetched);
+        if (!normalized) return;
+        ratingCache[cacheKey] = normalized;
+        persistRatingCache(ratingCache);
+        renderAll();
+      } catch {
+        // Silent fallback: rating clue stays N/A when lookup fails.
+      } finally {
+        ratingLookupsInFlight.delete(cacheKey);
+      }
+    }
+
+    async function fetchRatingForMovie(movie) {
+      const tmdbCandidates = [];
+      const primary = String(tmdbApiKey || "").trim();
+      const fallback = String(TMDB_DEFAULT_API_KEY || "").trim();
+      if (primary) tmdbCandidates.push(primary);
+      if (fallback && fallback !== primary) tmdbCandidates.push(fallback);
+
+      for (const key of tmdbCandidates) {
+        try {
+          const rating = await fetchRatingFromTmdb(movie, key);
+          if (rating) return rating;
+        } catch {
+          // Try next key candidate.
+        }
+      }
+      return "";
+    }
+
+    async function fetchRatingFromTmdb(movie, apiKey) {
+      const query = encodeURIComponent(movie.title);
+      const yearParam = Number.isFinite(movie.year) ? `&year=${movie.year}` : "";
+      const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${query}${yearParam}&include_adult=false&page=1`;
+      const searchRes = await fetch(searchUrl);
+      if (searchRes.status === 401 || searchRes.status === 403) return "";
+      if (!searchRes.ok) return "";
+
+      const searchPayload = await searchRes.json();
+      const results = Array.isArray(searchPayload.results) ? searchPayload.results : [];
+      if (!results.length) return "";
+
+      const target = normalize(movie.title);
+      const best = results.find((item) => normalize(item.title || "") === target)
+        || results.find((item) => normalize(item.title || "").includes(target))
+        || results[0];
+      const movieId = best && Number.isFinite(best.id) ? best.id : null;
+      if (!movieId) return "";
+
+      const detailsUrl = `https://api.themoviedb.org/3/movie/${movieId}/release_dates?api_key=${encodeURIComponent(apiKey)}`;
+      const detailsRes = await fetch(detailsUrl);
+      if (!detailsRes.ok) return "";
+
+      const detailsPayload = await detailsRes.json();
+      const entries = Array.isArray(detailsPayload.results) ? detailsPayload.results : [];
+      const us = entries.find((entry) => normalize(entry.iso_3166_1) === "us");
+      const usDates = us && Array.isArray(us.release_dates) ? us.release_dates : [];
+      const usRating = usDates.find((entry) => normalizeRating(entry.certification));
+      if (usRating) return normalizeRating(usRating.certification);
+
+      for (const entry of entries) {
+        const releaseDates = Array.isArray(entry.release_dates) ? entry.release_dates : [];
+        const fallbackRating = releaseDates.find((item) => normalizeRating(item.certification));
+        if (fallbackRating) return normalizeRating(fallbackRating.certification);
+      }
+      return "";
+    }
+
     function tileHtml(label, value, tone, wide = false) {
       const cls = wide ? `tile ${tone} franchise` : `tile ${tone}`;
       const text = String(value ?? "");
@@ -2830,6 +2913,18 @@
       return castMatch.matches
         .map((name, i) => tileHtml(castMatch.matches.length > 1 ? `Cast Match ${i + 1}` : "Cast Match", name, "hit"))
         .join("");
+    }
+
+    function buildGenreTilesHtml(genreMatch) {
+      if (!genreMatch || genreMatch.state === "na") {
+        return tileHtml("Genre", "N/A", "na");
+      }
+      if (Array.isArray(genreMatch.matches) && genreMatch.matches.length > 1) {
+        return genreMatch.matches
+          .map((name, i) => tileHtml(`Genre ${i + 1}`, name, "hit"))
+          .join("");
+      }
+      return tileHtml("Genre", genreMatch.label, genreMatch.state);
     }
 
     function compareYear(guessYear, targetYear) {
@@ -2862,9 +2957,9 @@
       const guessList = Array.isArray(guessGenres) ? guessGenres.filter(Boolean) : [];
       const targetList = Array.isArray(targetGenres) ? targetGenres.filter(Boolean) : [];
       const shared = guessList.filter((g) => targetList.includes(g));
-      if (shared.length > 0) return { label: shared.join(", "), state: "hit" };
-      if (guessList.length === 0) return { label: "N/A", state: "na" };
-      return { label: guessList.join(", "), state: "miss" };
+      if (shared.length > 0) return { label: shared.join(", "), state: "hit", matches: shared };
+      if (guessList.length === 0) return { label: "N/A", state: "na", matches: [] };
+      return { label: guessList.join(", "), state: "miss", matches: [] };
     }
 
     function compareExact(guessValue, targetValue) {
@@ -2890,16 +2985,44 @@
       return { label: guessValue, state: same ? "hit" : "miss" };
     }
 
-    function isAnimatedMovie(movie) {
-      if (!movie || !Array.isArray(movie.genres)) return false;
-      return movie.genres.some((genre) => normalize(genre).includes("animation") || normalize(genre).includes("anime"));
+    const RATING_ORDER = ["G", "PG", "PG-13", "R", "NC-17"];
+
+    function normalizeRating(value) {
+      const cleaned = String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "")
+        .replace(/_/g, "-");
+      if (!cleaned) return "";
+      if (cleaned === "PG13" || cleaned === "PG-13") return "PG-13";
+      if (cleaned === "NC17" || cleaned === "NC-17") return "NC-17";
+      if (cleaned === "NOTRATED" || cleaned === "UNRATED" || cleaned === "NR" || cleaned === "N/A") return "UNRATED";
+      if (cleaned === "G" || cleaned === "PG" || cleaned === "R" || cleaned === "TV-MA" || cleaned === "TV-14" || cleaned === "TV-PG" || cleaned === "TV-G") return cleaned;
+      return "";
     }
 
-    function compareAnimated(guessMovie, targetMovie) {
-      const guessAnimated = isAnimatedMovie(guessMovie);
-      const targetAnimated = isAnimatedMovie(targetMovie);
-      const label = guessAnimated ? "Yes" : "No";
-      return { label, state: guessAnimated === targetAnimated ? "hit" : "miss" };
+    function getMovieRating(movie) {
+      if (!movie || typeof movie !== "object") return "";
+      const embedded = normalizeRating(movie.rating || movie.certification || movie.mpaa);
+      if (embedded) return embedded;
+      return normalizeRating(ratingCache[movieCacheKey(movie)]);
+    }
+
+    function compareRating(guessMovie, targetMovie) {
+      const guessRating = getMovieRating(guessMovie);
+      const targetRating = getMovieRating(targetMovie);
+      if (!guessRating || !targetRating) return { label: guessRating || "N/A", state: "na" };
+      if (guessRating === targetRating) return { label: guessRating, state: "hit" };
+
+      const guessIndex = RATING_ORDER.indexOf(guessRating);
+      const targetIndex = RATING_ORDER.indexOf(targetRating);
+      if (guessIndex !== -1 && targetIndex !== -1) {
+        const diff = Math.abs(guessIndex - targetIndex);
+        const arrow = guessIndex < targetIndex ? "↑" : "↓";
+        const hint = guessIndex < targetIndex ? "stricter" : "softer";
+        return { label: `${guessRating} ${arrow} ${hint}`, state: diff === 1 ? "near" : "miss" };
+      }
+      return { label: guessRating, state: "miss" };
     }
 
     function compareCountry(guessMovie, targetMovie) {
@@ -3308,7 +3431,7 @@
     function showHelpModal() {
       showModal(
         "How To Play",
-        "Guess the mystery movie in 10 guesses.\n\nGreen means exact match.\nYellow means close.\nGray means no match.\n\nYear, runtime, title words, and box office tiles include directional clues.\n\nAnimated, country, and language are exact-match clues."
+        "Guess the mystery movie in 10 guesses.\n\nGreen means exact match.\nYellow means close.\nGray means no match.\n\nYear, runtime, title words, and box office tiles include directional clues.\n\nGenre, rating, country, and language are strong narrowing clues."
       );
     }
 
@@ -3526,7 +3649,7 @@
             compareExact(guess.director, answer.director).state,
             compareCastMatches(guess.cast, answer.cast).state,
             compareStudio(guess.studio, answer.studio).state,
-            compareAnimated(guess, answer).state,
+            compareRating(guess, answer).state,
             compareBoxOffice(guess.boxOffice, answer.boxOffice).state,
             compareCountry(guess, answer).state,
             compareLanguage(guess, answer).state,
@@ -3688,6 +3811,22 @@
 
     function persistThumbCache(cache) {
       storageSet(THUMB_CACHE_KEY, JSON.stringify(cache));
+    }
+
+    function loadRatingCache() {
+      const raw = storageGet(RATING_CACHE_KEY);
+      if (!raw) return {};
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        storageRemove(RATING_CACHE_KEY);
+        return {};
+      }
+    }
+
+    function persistRatingCache(cache) {
+      storageSet(RATING_CACHE_KEY, JSON.stringify(cache));
     }
 
     function parseCustomMovieFromUrl() {
