@@ -1154,8 +1154,8 @@
         <p class="menu-note">Play today's official puzzle.</p>
         <button id="mode-rewind" class="menu-link" type="button">Rewind</button>
         <p class="menu-note">Play yesterday's puzzle.</p>
-        <button id="mode-jam" class="menu-link" type="button">Jam</button>
-        <p class="menu-note">Random practice puzzle with 10 guesses.</p>
+        <button id="mode-jam" class="menu-link" type="button">Practice</button>
+        <p class="menu-note">Endless practice puzzles with 10 guesses each.</p>
         <button id="mode-create" class="menu-link" type="button">Create</button>
         <p class="menu-note">Create a custom movie puzzle link for a friend.</p>
       </div>
@@ -2645,7 +2645,7 @@
         state.finished = true;
         state.won = false;
         state.message = gameMode === "jam"
-          ? `Out of guesses. This jam movie was ${answer.title}.`
+          ? `Out of guesses. This practice movie was ${answer.title}.`
           : gameMode === "rewind"
             ? `Out of guesses. This rewind movie was ${answer.title}.`
             : `Out of guesses. Today's movie was ${answer.title}.`;
@@ -2678,14 +2678,14 @@
       const introLine = customMode
         ? `${MAX_GUESSES} guesses, friend challenge. Can you solve it?`
         : gameMode === "jam"
-          ? `Jam mode: 10 guesses, random movie practice.`
+          ? `Practice mode: endless movie practice, 10 guesses each.`
           : gameMode === "rewind"
             ? `Rewind mode: yesterday's puzzle, ${MAX_GUESSES} guesses.`
             : `Can you find the movie in ${MAX_GUESSES} guesses?`;
       const introModeTag = customMode
         ? "friend challenge"
         : gameMode === "jam"
-          ? "jam mode"
+          ? "practice mode"
           : gameMode === "rewind"
             ? "rewind mode"
             : "daily puzzle";
@@ -2696,7 +2696,7 @@
         : gameMode === "rewind"
           ? "Guess the rewind movie."
           : gameMode === "jam"
-            ? "Guess the jam movie."
+            ? "Guess the practice movie."
             : "Guess the movie of the day.";
       els.playBtn.textContent = "PLAY";
 
@@ -2710,7 +2710,7 @@
       const guessText = state.finished
         ? `Guesses ${used} of ${MAX_GUESSES}`
         : gameMode === "jam"
-          ? `Guess ${used + 1} (Jam)`
+          ? `Guess ${used + 1} (Practice)`
           : `Guess ${currentGuess} of ${MAX_GUESSES}`;
       els.guessCount.textContent = guessText;
 
@@ -2736,7 +2736,7 @@
         } else if (gameMode === "rewind") {
           els.guessInput.placeholder = state.won ? "Rewind solved — nice work." : "Rewind complete.";
         } else if (gameMode === "jam") {
-          els.guessInput.placeholder = state.won ? "Jam solved — queueing next..." : "Jam complete.";
+          els.guessInput.placeholder = state.won ? "Practice solved — queueing next..." : "Practice complete.";
         } else {
           els.guessInput.placeholder = state.won ? "Daily solved — nice work." : "Daily complete.";
         }
@@ -2764,7 +2764,7 @@
           : gameMode === "rewind"
             ? "Rewind Solved"
             : gameMode === "jam"
-              ? "Jam Solved"
+              ? "Practice Solved"
               : "Daily Solved";
       } else {
         els.resultLabel.textContent = customMode
@@ -2772,7 +2772,7 @@
           : gameMode === "rewind"
             ? "Rewind Complete"
             : gameMode === "jam"
-              ? "Jam Complete"
+              ? "Practice Complete"
               : "Daily Complete";
       }
       els.resultTitle.textContent = answer.title;
@@ -2782,7 +2782,7 @@
       } else {
         els.resultEffortTitle.textContent = "Tough Luck...";
         const label = gameMode === "jam"
-          ? "This jam movie was"
+          ? "This practice movie was"
           : gameMode === "rewind"
             ? "This rewind movie was"
             : "Today's answer was";
@@ -3497,7 +3497,7 @@
           return `Challenge solved. Nice work: ${state.guesses.length}/${MAX_GUESSES}.`;
         }
         if (gameMode === "jam") {
-          return `Jam solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+          return `Practice solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
         }
         if (gameMode === "rewind") {
           return `Rewind solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
@@ -3508,7 +3508,7 @@
         return `Challenge complete. You gave it a solid run.`;
       }
       if (gameMode === "jam") {
-        return `Jam complete. Tough luck — the answer was ${answer.title}.`;
+        return `Practice complete. Tough luck — the answer was ${answer.title}.`;
       }
       if (gameMode === "rewind") {
         return `Rewind complete. Tough luck — the answer was ${answer.title}.`;
@@ -3703,9 +3703,9 @@
       const body = [
         `Movies total: ${MOVIES.length}`,
         `Daily-ready movies: ${DATA_AUDIT.answerPool.length}`,
-        `Jam-ready movies (strong cast familiarity): ${DATA_AUDIT.jamAnswerPool.length}`,
+        `Practice-ready movies (strong cast familiarity): ${DATA_AUDIT.jamAnswerPool.length}`,
         `Mainstream threshold: voteCount >= ${ANSWER_MIN_VOTES} and voteAverage >= ${ANSWER_MIN_RATING.toFixed(1)}`,
-        `Jam threshold: voteCount >= ${JAM_MIN_VOTES} and voteAverage >= ${JAM_MIN_RATING.toFixed(1)}`,
+        `Practice threshold: voteCount >= ${JAM_MIN_VOTES} and voteAverage >= ${JAM_MIN_RATING.toFixed(1)}`,
         `Mainstream movies found: ${DATA_AUDIT.mainstreamCount}`,
         `High cast-familiarity movies: ${DATA_AUDIT.castFamiliarCount}`,
         `Missing Oscar noms: ${DATA_AUDIT.missingOscarCount}`,
@@ -3882,7 +3882,7 @@
       const modeTag = customMode
         ? " [custom]"
         : gameMode === "jam"
-          ? " [jam]"
+          ? " [practice]"
           : gameMode === "rewind"
             ? " [rewind]"
             : "";
