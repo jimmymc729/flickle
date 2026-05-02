@@ -1153,7 +1153,7 @@
         <button id="mode-daily" class="menu-link" type="button">Daily</button>
         <p class="menu-note">Play today's official puzzle.</p>
         <button id="mode-rewind" class="menu-link" type="button">Rewind</button>
-        <p class="menu-note">Play a random puzzle from the last 7 days.</p>
+        <p class="menu-note">Play yesterday's puzzle.</p>
         <button id="mode-jam" class="menu-link" type="button">Jam</button>
         <p class="menu-note">Random practice puzzle with 10 guesses.</p>
         <button id="mode-create" class="menu-link" type="button">Create</button>
@@ -2443,10 +2443,7 @@
     const customMode = Boolean(customMovie);
     const requestedMode = (urlParams.get("mode") || "daily").toLowerCase();
     const gameMode = customMode ? "custom" : (requestedMode === "rewind" || requestedMode === "jam" ? requestedMode : "daily");
-    const rewindOffsetFromQuery = Number.parseInt(urlParams.get("offset") || "", 10);
-    const rewindOffset = Number.isInteger(rewindOffsetFromQuery) && rewindOffsetFromQuery <= -1 && rewindOffsetFromQuery >= -7
-      ? rewindOffsetFromQuery
-      : -1;
+    const rewindOffset = -1;
     const jamSeed = (urlParams.get("seed") || "").trim() || String(Date.now());
     const today = new Date();
     const puzzleDate = buildPuzzleDate(today, gameMode === "rewind" ? rewindOffset : 0);
@@ -2683,7 +2680,7 @@
         : gameMode === "jam"
           ? `Jam mode: 10 guesses, random movie practice.`
           : gameMode === "rewind"
-            ? `${MAX_GUESSES} guesses, rewind puzzle from the past week.`
+            ? `Rewind mode: yesterday's puzzle, ${MAX_GUESSES} guesses.`
             : `Can you find the movie in ${MAX_GUESSES} guesses?`;
       const introModeTag = customMode
         ? "friend challenge"
@@ -3610,8 +3607,7 @@
         location.search = "";
       }, "mode-daily");
       bind(els.modeRewind, "click", () => {
-        const daysAgo = 1 + Math.floor(Math.random() * 7);
-        location.search = `?mode=rewind&offset=-${daysAgo}`;
+        location.search = "?mode=rewind";
       }, "mode-rewind");
       bind(els.modeJam, "click", () => {
         const seed = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
