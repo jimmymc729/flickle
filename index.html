@@ -1615,7 +1615,7 @@
       { title: "Home Alone 2: Lost in New York", year: 1992, runtime: 120, genres: ["Comedy", "Family", "Adventure"], director: "Chris Columbus", cast: ["Macaulay Culkin", "Joe Pesci", "Daniel Stern", "Catherine O'Hara", "John Heard"], country: "USA", language: "English", franchise: "Home Alone Collection", studio: "20th Century Fox", boxOffice: 358994850, voteCount: 10564, voteAverage: 6.8, popularity: 14.5 },
       { title: "Hook", year: 1991, runtime: 142, genres: ["Adventure", "Fantasy", "Comedy"], director: "Steven Spielberg", cast: ["Dustin Hoffman", "Robin Williams", "Julia Roberts", "Bob Hoskins", "Maggie Smith"], country: "USA", language: "English", franchise: "", studio: "Amblin Entertainment", boxOffice: 300854823, voteCount: 5699, voteAverage: 6.8, popularity: 8.7 },
       { title: "Horrible Bosses", year: 2011, runtime: 98, genres: ["Comedy", "Crime"], director: "Seth Gordon", cast: ["Jason Bateman", "Charlie Day", "Jason Sudeikis", "Kevin Spacey", "Jennifer Aniston"], country: "USA", language: "English", franchise: "Horrible Bosses Collection", studio: "New Line Cinema", boxOffice: 209838559, voteCount: 6770, voteAverage: 6.6, popularity: 5.5 },
-      { title: "Hot Fuzz", year: 2007, runtime: 121, genres: ["Crime", "Action", "Comedy"], director: "Edgar Wright", cast: ["Simon Pegg", "Nick Frost", "Jim Broadbent", "Paddy Considine", "Rafe Spall"], country: "France", language: "English", franchise: "", studio: "Big Talk Studios", boxOffice: 80600000, voteCount: 8275, voteAverage: 7.6, popularity: 8.5 },
+      { title: "Hot Fuzz", year: 2007, runtime: 121, genres: ["Crime", "Action", "Comedy"], director: "Edgar Wright", cast: ["Simon Pegg", "Nick Frost", "Jim Broadbent", "Paddy Considine", "Rafe Spall"], country: "United Kingdom", language: "English", franchise: "", studio: "Big Talk Studios", boxOffice: 80600000, voteCount: 8275, voteAverage: 7.6, popularity: 8.5 },
       { title: "Hotel Transylvania", year: 2012, runtime: 91, genres: ["Animation", "Comedy", "Family"], director: "Genndy Tartakovsky", cast: ["Adam Sandler", "Andy Samberg", "Selena Gomez", "Kevin James", "Fran Drescher"], country: "USA", language: "English", franchise: "Hotel Transylvania Collection", studio: "Columbia Pictures", boxOffice: 358375603, voteCount: 9146, voteAverage: 7.0, popularity: 11.6 },
       { title: "Hotel Transylvania 2", year: 2015, runtime: 89, genres: ["Animation", "Comedy", "Family"], director: "Genndy Tartakovsky", cast: ["Adam Sandler", "Andy Samberg", "Selena Gomez", "Kevin James", "Steve Buscemi"], country: "USA", language: "English", franchise: "Hotel Transylvania Collection", studio: "Columbia Pictures", boxOffice: 473200000, voteCount: 6103, voteAverage: 6.8, popularity: 8.4 },
       { title: "Hotel Transylvania 3: Summer Vacation", year: 2018, runtime: 97, genres: ["Animation", "Comedy", "Family"], director: "Genndy Tartakovsky", cast: ["Adam Sandler", "Andy Samberg", "Selena Gomez", "Kathryn Hahn", "Jim Gaffigan"], country: "USA", language: "English", franchise: "Hotel Transylvania Collection", studio: "Columbia Pictures", boxOffice: 528600000, voteCount: 4685, voteAverage: 6.9, popularity: 13.6 },
@@ -4164,16 +4164,25 @@
     }
 
     function installViewportHeightFix() {
+      const touchDevice = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      const mobileLikeViewport = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) < 900;
+      const preferVisualViewport = touchDevice && mobileLikeViewport;
+
       const apply = () => {
-        const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        document.documentElement.style.setProperty("--app-height", `${Math.round(viewHeight)}px`);
+        const innerHeight = Number.isFinite(window.innerHeight) ? Math.round(window.innerHeight) : 0;
+        const vv = window.visualViewport;
+        const vvHeight = vv && Number.isFinite(vv.height) ? Math.round(vv.height) : 0;
+        const zoomed = !!(vv && Math.abs((vv.scale || 1) - 1) > 0.01);
+        const viewHeight = preferVisualViewport && !zoomed && vvHeight > 0
+          ? vvHeight
+          : (innerHeight || vvHeight || 0);
+        document.documentElement.style.setProperty("--app-height", `${Math.max(320, viewHeight)}px`);
       };
       apply();
       window.addEventListener("resize", apply);
       window.addEventListener("orientationchange", apply);
-      if (window.visualViewport) {
+      if (window.visualViewport && preferVisualViewport) {
         window.visualViewport.addEventListener("resize", apply);
-        window.visualViewport.addEventListener("scroll", apply);
       }
     }
 
