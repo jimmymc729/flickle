@@ -38,3 +38,19 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - Shows only when Daily mode is finished (not custom/rewind/practice).
   - Countdown targets local midnight reset.
   - Added interval lifecycle guards so timer stops when returning to Home/menu.
+- Win animation polish:
+  - Added a short win reveal hold (`WIN_REVEAL_HOLD_MS = 1050`) so all-green tile flips are visible before results UI appears.
+  - During hold, result panel/share preview/next-daily countdown stay hidden; they appear after hold completes.
+- Win transition polish v2:
+  - Increased win hold to 1500ms so all tile spin/flip completion is visible.
+  - Added smooth reveal transition for post-win panels (`postgame-enter` / `postgame-panel-in`) with staggered delays.
+  - Added gentle `scrollIntoView` to the revealed result panel after hold to reduce perceived jump.
+- Win transition consistency fix:
+  - Added deterministic release timer (`winRevealReleaseTimer`) for win-hold lifecycle.
+  - Replaced ad-hoc Date checks with `isWinRevealHoldActive()`.
+  - Suppressed async rating/language-triggered `renderAll()` calls during active win hold to prevent flicker/inconsistent reveal timing.
+  - Removed hold-end scroll jump dependency; reveal now transitions via panel animation timing.
+- Flip consistency fix:
+  - Latest card tile animations now attach after paint (`requestAnimationFrame` x2) for reliable visual playback.
+  - On winning guess during win-hold, all tiles on the winning card animate together (`animationDelay = 0ms`) for full all-green celebration.
+  - Non-win latest guesses keep staggered hit/near animation behavior.

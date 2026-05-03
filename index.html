@@ -698,6 +698,12 @@
       line-height: 1.35;
     }
 
+    .postgame-enter {
+      animation: postgame-panel-in 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-delay: var(--pg-delay, 0ms);
+      will-change: transform, opacity;
+    }
+
     .next-daily {
       margin: 8px 0 12px;
       border: 1px solid rgba(143, 123, 255, 0.38);
@@ -946,11 +952,11 @@
     }
 
     .tile.tile-enter {
-      animation: tile-rotate-y-in 920ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+      animation: tile-rotate-y-in var(--tile-spin-ms, 1160ms) cubic-bezier(0.2, 0.55, 0.2, 1) both;
       will-change: transform;
     }
     .tile.tile-enter::after {
-      animation: tile-back-tint 920ms ease both;
+      animation: tile-back-tint var(--tile-spin-ms, 1160ms) ease both;
     }
 
     .actions {
@@ -1028,14 +1034,17 @@
     @keyframes tile-rotate-y-in {
       0% {
         opacity: 0;
-        transform: rotateY(-360deg);
+        transform: rotateY(0deg);
       }
-      12% {
+      10% {
         opacity: 1;
       }
+      25% { transform: rotateY(90deg); }
+      50% { transform: rotateY(180deg); }
+      75% { transform: rotateY(270deg); }
       100% {
         opacity: 1;
-        transform: rotateY(0deg);
+        transform: rotateY(360deg);
       }
     }
 
@@ -1050,6 +1059,11 @@
     @keyframes status-pulse {
       from { opacity: 0.5; transform: translateY(2px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes postgame-panel-in {
+      from { opacity: 0; transform: translateY(14px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     @keyframes logo-glow-breathe {
@@ -1316,6 +1330,8 @@
 
   <script>
     const MAX_GUESSES = 10;
+    const WIN_REVEAL_HOLD_MS = 2000;
+    const WIN_REVEAL_SCROLL_DELAY_MS = 220;
     const ANSWER_MIN_VOTES = 1200;
     const ANSWER_MIN_RATING = 6.2;
     const JAM_MIN_VOTES = 1600;
@@ -2593,10 +2609,15 @@
       guesses: [],
       finished: false,
       won: false,
+      winCelebrating: false,
       message: "",
       scored: false
     };
     let nextDailyCountdownTimer = null;
+    let winRevealHoldUntil = 0;
+    let winRevealReleaseTimer = null;
+    let winRevealScrollTimer = null;
+    let postGamePanelsAnimated = false;
 
     if (urlParams.get("reset") === "1") {
       storageRemove(storageKey);
@@ -2757,7 +2778,28 @@
       if (normalize(guessMovie.title) === normalize(answer.title)) {
         state.finished = true;
         state.won = true;
+        state.winCelebrating = true;
         state.message = `Correct. You solved Flickle in ${state.guesses.length}/${MAX_GUESSES}.`;
+        postGamePanelsAnimated = false;
+        winRevealHoldUntil = Date.now() + WIN_REVEAL_HOLD_MS;
+        if (winRevealReleaseTimer) {
+          window.clearTimeout(winRevealReleaseTimer);
+          winRevealReleaseTimer = null;
+        }
+        if (winRevealScrollTimer) {
+          window.clearTimeout(winRevealScrollTimer);
+          winRevealScrollTimer = null;
+        }
+        winRevealReleaseTimer = window.setTimeout(() => {
+          state.winCelebrating = false;
+          winRevealHoldUntil = 0;
+          winRevealReleaseTimer = null;
+          renderAll();
+          winRevealScrollTimer = window.setTimeout(() => {
+            winRevealScrollTimer = null;
+            smoothScrollToPostGame();
+          }, WIN_REVEAL_SCROLL_DELAY_MS);
+        }, WIN_REVEAL_HOLD_MS);
         trackAnalyticsEvent("win_game", {
           game_mode: gameMode,
           custom_mode: customMode ? "yes" : "no",
@@ -2789,7 +2831,7 @@
 
       renderAll();
       persistState();
-      if (state.finished) {
+      if (state.finished || state.winCelebrating) {
         playUiSound(state.won ? "win" : "lose");
       } else {
         playUiSound("guess");
@@ -2828,6 +2870,7 @@
 
       if (!state.started) {
         stopNextDailyCountdown();
+        postGamePanelsAnimated = false;
         return;
       }
 
@@ -2840,7 +2883,11 @@
           : `Guess ${currentGuess} of ${MAX_GUESSES}`;
       els.guessCount.textContent = guessText;
 
-      renderRevealMovie();
+      const holdWinReveal = isWinRevealHoldActive();
+      if (!state.finished || holdWinReveal) {
+        postGamePanelsAnimated = false;
+      }
+      renderRevealMovie(holdWinReveal);
       renderCards();
       if (state.finished) {
         setStatus(state.message || buildCompletionStatusMessage(), state.won ? "success" : "complete");
@@ -2848,22 +2895,34 @@
         setStatus(state.message || `${MAX_GUESSES - used} guesses left.`);
       }
 
-      const showFinishShare = state.finished && !customMode;
+      const showFinishShare = state.finished && !customMode && !holdWinReveal;
       els.finishShare.classList.toggle("hidden", !showFinishShare);
+      if (!showFinishShare) {
+        els.finishShare.classList.remove("postgame-enter");
+      }
       if (showFinishShare) {
         els.finishShareBtn.textContent = "Share";
         renderSharePreview();
       }
 
-      const showNextDailyCountdown = !customMode && gameMode === "daily" && state.finished;
+      const showNextDailyCountdown = !customMode && gameMode === "daily" && state.finished && !holdWinReveal;
       els.nextDaily.classList.toggle("hidden", !showNextDailyCountdown);
+      if (!showNextDailyCountdown) {
+        els.nextDaily.classList.remove("postgame-enter");
+      }
       if (showNextDailyCountdown) {
         startNextDailyCountdown();
       } else {
         stopNextDailyCountdown();
       }
 
-      els.guessInput.disabled = state.finished;
+      if (state.finished && !holdWinReveal && !postGamePanelsAnimated) {
+        animatePostGamePanels();
+        postGamePanelsAnimated = true;
+      }
+
+      const inputLocked = state.finished || holdWinReveal;
+      els.guessInput.disabled = inputLocked;
       if (state.finished) {
         if (customMode) {
           els.guessInput.placeholder = state.won ? "Challenge solved — nice work." : "Challenge complete.";
@@ -2878,7 +2937,7 @@
         els.guessInput.placeholder = "Type a movie title...";
       }
       const submitBtn = els.guessForm.querySelector("button[type='submit']");
-      submitBtn.disabled = state.finished;
+      submitBtn.disabled = inputLocked;
       els.shareBtn.disabled = false;
     }
 
@@ -2908,11 +2967,47 @@
       els.nextDailyTime.textContent = `Next daily in ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     }
 
-    function renderRevealMovie() {
-      if (!state.finished) {
+    function isWinRevealHoldActive() {
+      return state.finished && state.won && state.winCelebrating && Date.now() < winRevealHoldUntil;
+    }
+
+    function smoothScrollToPostGame() {
+      const target = !els.resultEffort.classList.contains("hidden")
+        ? els.resultEffort
+        : els.resultReveal;
+      if (!target || target.classList.contains("hidden")) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+
+    function animatePostGamePanels() {
+      const panels = [
+        { el: els.resultEffort, delay: 0 },
+        { el: els.resultReveal, delay: 35 },
+        { el: els.nextDaily, delay: 110 },
+        { el: els.finishShare, delay: 180 }
+      ];
+      for (const panel of panels) {
+        const element = panel.el;
+        if (!element || element.classList.contains("hidden")) continue;
+        element.classList.remove("postgame-enter");
+        element.style.setProperty("--pg-delay", `${panel.delay}ms`);
+        // Restart animation for newly shown completion panels only.
+        void element.offsetWidth;
+        element.classList.add("postgame-enter");
+      }
+    }
+
+    function renderRevealMovie(holdWinReveal = false) {
+      if (!state.finished || holdWinReveal) {
         els.resultReveal.classList.add("hidden");
         els.resultReveal.classList.remove("has-image");
+        els.resultReveal.classList.remove("postgame-enter");
         els.resultEffort.classList.add("hidden");
+        els.resultEffort.classList.remove("postgame-enter");
         els.resultPoster.removeAttribute("src");
         return;
       }
@@ -3038,21 +3133,40 @@
           </div>
         `;
 
-        if (index === 0) {
+        const isLatest = index === 0;
+        if (isLatest) {
           card.classList.add("latest-entry");
-          const tiles = card.querySelectorAll(".tile");
-          tiles.forEach((tile, tileIndex) => {
-            if (tile.classList.contains("hit") || tile.classList.contains("near")) {
-              tile.classList.add("tile-enter");
-              tile.style.animationDelay = `${tileIndex * 24}ms`;
-            }
-          });
         }
 
         els.cards.appendChild(card);
         hydrateAvatar(card, guess);
         ensureRatingDataForMovie(guess);
         ensureLanguageDataForMovie(guess);
+
+        if (isLatest) {
+          const animateWinningCard = isWinRevealHoldActive() && normalize(guess.title) === normalize(answer.title);
+          const tiles = Array.from(card.querySelectorAll(".tile"));
+          const tilesToAnimate = animateWinningCard
+            ? tiles
+            : tiles.filter((tile) => tile.classList.contains("hit") || tile.classList.contains("near"));
+
+          if (tilesToAnimate.length > 0) {
+            // Apply after paint so the rotation is consistently visible.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                tilesToAnimate.forEach((tile, tileIndex) => {
+                  if (animateWinningCard) {
+                    tile.style.setProperty("--tile-spin-ms", "1160ms");
+                  } else {
+                    tile.style.removeProperty("--tile-spin-ms");
+                  }
+                  tile.classList.add("tile-enter");
+                  tile.style.animationDelay = `${tileIndex * 24}ms`;
+                });
+              });
+            });
+          }
+        }
       }
       ensureRatingDataForMovie(answer);
       ensureLanguageDataForMovie(answer);
@@ -3096,7 +3210,7 @@
         if (!normalized) return;
         ratingCache[cacheKey] = normalized;
         persistRatingCache(ratingCache);
-        renderAll();
+        if (!isWinRevealHoldActive()) renderAll();
       } catch {
         // Silent fallback: rating clue stays N/A when lookup fails.
       } finally {
@@ -3173,7 +3287,7 @@
         if (!normalized) return;
         languageCache[cacheKey] = normalized;
         persistLanguageCache(languageCache);
-        renderAll();
+        if (!isWinRevealHoldActive()) renderAll();
       } catch {
         // Silent fallback: keep bundled language if lookup fails.
       } finally {
