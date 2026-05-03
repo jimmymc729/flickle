@@ -2625,6 +2625,7 @@
       shareBtn: document.getElementById("share-btn"),
       rulesBtn: document.getElementById("rules-btn"),
       resultReveal: document.getElementById("result-reveal"),
+      resultFlip: document.getElementById("result-flip"),
       resultPoster: document.getElementById("result-poster"),
       resultPosterFallback: document.getElementById("result-poster-fallback"),
       resultLabel: document.getElementById("result-label"),
@@ -2756,6 +2757,7 @@
       console.error("Flickle shell init failed:", error);
     }
     bindCoreInteractions();
+    window.addEventListener("resize", syncResultRevealHeight, { passive: true });
     // Defer first paint until the script fully initializes all constants/functions.
     // This avoids refresh-time clue card drops when restoring in-progress games.
     window.setTimeout(() => {
@@ -3113,6 +3115,17 @@
       });
     }
 
+    function syncResultRevealHeight() {
+      if (!els.resultReveal || !els.resultFlip) return;
+      const front = els.resultReveal.querySelector(".result-front");
+      const back = els.resultReveal.querySelector(".result-back");
+      if (!front || !back) return;
+      const targetHeight = Math.max(front.scrollHeight, back.scrollHeight);
+      if (targetHeight > 0) {
+        els.resultFlip.style.minHeight = `${targetHeight + 2}px`;
+      }
+    }
+
     function canFlipResultReveal() {
       if (!els.resultReveal) return false;
       if (!state.finished) return false;
@@ -3189,6 +3202,9 @@
         els.resultEffort.classList.add("hidden");
         els.resultEffort.classList.remove("postgame-enter");
         els.resultPoster.removeAttribute("src");
+        if (els.resultFlip) {
+          els.resultFlip.style.removeProperty("min-height");
+        }
         return;
       }
 
@@ -3232,6 +3248,7 @@
         els.resultEffort.classList.remove("hidden");
       }
       applyResultRevealFlipState();
+      syncResultRevealHeight();
       els.resultPoster.alt = `Poster for ${answer.title}`;
       els.resultPosterFallback.textContent = answer.title.charAt(0).toUpperCase() || "?";
 
@@ -3249,6 +3266,7 @@
         persistThumbCache(thumbCache);
         els.resultPoster.src = url;
         els.resultReveal.classList.add("has-image");
+        requestAnimationFrame(syncResultRevealHeight);
       }).catch(() => {
         // Keep fallback initial when a large poster can't be fetched.
       });
