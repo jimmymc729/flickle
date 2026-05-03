@@ -613,16 +613,83 @@
 
     .result-reveal {
       margin: 8px 0 12px;
-      padding: 10px;
       border-radius: 12px;
       border: 1px solid rgba(143, 123, 255, 0.3);
       background: linear-gradient(180deg, #121829, #0c111c);
+      display: block;
+      overflow: hidden;
+      perspective: 1200px;
+      animation: reveal 220ms ease;
+    }
+    .result-reveal.fact-enabled {
+      cursor: pointer;
+    }
+    .result-flip {
+      position: relative;
+      width: 100%;
+      min-height: 186px;
+      transform-style: preserve-3d;
+      transition: transform 560ms cubic-bezier(0.2, 0.65, 0.2, 1);
+    }
+    .result-reveal.flipped .result-flip {
+      transform: rotateY(180deg);
+    }
+    .result-face {
+      position: absolute;
+      inset: 0;
+      padding: 10px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .result-front {
       display: grid;
       grid-template-columns: 120px 1fr;
       gap: 12px;
       text-align: left;
       align-items: center;
-      animation: reveal 220ms ease;
+    }
+    .result-back {
+      transform: rotateY(180deg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: left;
+      background:
+        radial-gradient(200px 100px at 50% 0%, rgba(143, 123, 255, 0.16), transparent 78%),
+        linear-gradient(180deg, rgba(24, 34, 56, 0.85), rgba(14, 20, 33, 0.92));
+      border-top: 1px solid rgba(143, 123, 255, 0.12);
+    }
+    .result-fact-kicker {
+      font-size: 0.74rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #b9c4dc;
+      font-weight: 700;
+    }
+    .result-fact-title {
+      margin-top: 6px;
+      color: #f5f8ff;
+      font-size: 1.08rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .result-fact-body {
+      margin-top: 8px;
+      color: #d4ddf1;
+      font-size: 0.92rem;
+      line-height: 1.38;
+      max-width: 52ch;
+    }
+    .result-tap-hint {
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: #8892ac;
+      opacity: 0.54;
+      letter-spacing: 0.2px;
+      display: none;
+    }
+    .result-reveal.fact-enabled .result-tap-hint {
+      display: block;
     }
     .result-media {
       width: 120px;
@@ -1177,6 +1244,12 @@
       .stage { padding-top: 10px; }
       .guess-input { font-size: 1rem; }
       .result-reveal {
+        min-height: 0;
+      }
+      .result-flip {
+        min-height: 252px;
+      }
+      .result-front {
         grid-template-columns: 1fr;
       }
       .result-media {
@@ -1302,14 +1375,24 @@
           </div>
 
           <article class="result-reveal hidden" id="result-reveal" aria-live="polite">
-            <div class="result-media">
-              <img class="result-poster" id="result-poster" alt="" loading="lazy" referrerpolicy="no-referrer" />
-              <span class="result-poster-fallback" id="result-poster-fallback">?</span>
-            </div>
-            <div class="result-info">
-              <div class="result-label" id="result-label">Today's Movie</div>
-              <div class="result-title" id="result-title"></div>
-              <div class="result-meta" id="result-meta"></div>
+            <div class="result-flip" id="result-flip">
+              <div class="result-face result-front">
+                <div class="result-media">
+                  <img class="result-poster" id="result-poster" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                  <span class="result-poster-fallback" id="result-poster-fallback">?</span>
+                </div>
+                <div class="result-info">
+                  <div class="result-label" id="result-label">Today's Movie</div>
+                  <div class="result-title" id="result-title"></div>
+                  <div class="result-meta" id="result-meta"></div>
+                  <div class="result-tap-hint" id="result-tap-hint">Tap card for a Flickle Fact</div>
+                </div>
+              </div>
+              <div class="result-face result-back">
+                <div class="result-fact-kicker">Flickle Fact</div>
+                <div class="result-fact-title" id="result-fact-title"></div>
+                <div class="result-fact-body" id="result-fact-body"></div>
+              </div>
             </div>
           </article>
 
@@ -2517,6 +2600,15 @@
       "Alien": 2
     };
 
+    const FLICKLE_FACTS_BY_TITLE = {
+      "Donnie Darko": "The film became a cult favorite after release, helped by word of mouth and home video discovery.",
+      "The Matrix": "Bullet-time was achieved with a ring of still cameras firing in sequence around the actors.",
+      "Jaws": "The mechanical shark famously malfunctioned, which pushed Spielberg to rely on suspense more than screen time.",
+      "The Godfather": "Marlon Brando used subtle voice and physical choices that became some of cinema's most recognized character work.",
+      "Fight Club": "David Fincher hid brief flashes of Tyler Durden before key story beats to reward eagle-eyed viewers.",
+      "Back to the Future": "The script was rejected many times before becoming one of the defining films of the 1980s."
+    };
+
     const els = {
       intro: document.getElementById("intro"),
       game: document.getElementById("game"),
@@ -2538,6 +2630,9 @@
       resultLabel: document.getElementById("result-label"),
       resultTitle: document.getElementById("result-title"),
       resultMeta: document.getElementById("result-meta"),
+      resultTapHint: document.getElementById("result-tap-hint"),
+      resultFactTitle: document.getElementById("result-fact-title"),
+      resultFactBody: document.getElementById("result-fact-body"),
       resultEffort: document.getElementById("result-effort"),
       resultEffortTitle: document.getElementById("result-effort-title"),
       resultEffortBody: document.getElementById("result-effort-body"),
@@ -2636,6 +2731,7 @@
     let winRevealReleaseTimer = null;
     let winRevealScrollTimer = null;
     let postGamePanelsAnimated = false;
+    let resultRevealFlipped = false;
 
     if (urlParams.get("reset") === "1") {
       storageRemove(storageKey);
@@ -2743,6 +2839,22 @@
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             handlePreviewCopy();
+          }
+        });
+      }
+
+      if (els.resultReveal) {
+        const toggleRevealFact = () => {
+          if (!canFlipResultReveal()) return;
+          resultRevealFlipped = !resultRevealFlipped;
+          applyResultRevealFlipState();
+          playUiSound("toggle-on");
+        };
+        els.resultReveal.addEventListener("click", toggleRevealFact);
+        els.resultReveal.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggleRevealFact();
           }
         });
       }
@@ -3001,6 +3113,54 @@
       });
     }
 
+    function canFlipResultReveal() {
+      if (!els.resultReveal) return false;
+      if (!state.finished) return false;
+      if (isWinRevealHoldActive()) return false;
+      if (customMode) return false;
+      if (gameMode !== "daily") return false;
+      return !els.resultReveal.classList.contains("hidden");
+    }
+
+    function applyResultRevealFlipState() {
+      const enabled = canFlipResultReveal();
+      const flipped = enabled && resultRevealFlipped;
+      els.resultReveal.classList.toggle("fact-enabled", enabled);
+      els.resultReveal.classList.toggle("flipped", flipped);
+      if (enabled) {
+        els.resultReveal.setAttribute("role", "button");
+        els.resultReveal.setAttribute("tabindex", "0");
+        els.resultReveal.setAttribute("aria-pressed", flipped ? "true" : "false");
+        els.resultReveal.setAttribute("aria-label", flipped ? "Show movie result details" : "Show Flickle Fact");
+      } else {
+        els.resultReveal.removeAttribute("role");
+        els.resultReveal.removeAttribute("tabindex");
+        els.resultReveal.removeAttribute("aria-pressed");
+        els.resultReveal.removeAttribute("aria-label");
+      }
+    }
+
+    function buildFlickleFact(movie) {
+      const mapped = FLICKLE_FACTS_BY_TITLE[movie.title];
+      if (mapped) return mapped;
+
+      const snippets = [];
+      if (movie.director) snippets.push(`Directed by ${movie.director}.`);
+      if (Array.isArray(movie.cast) && movie.cast.length) {
+        snippets.push(`Top-billed cast includes ${movie.cast.slice(0, 3).join(", ")}.`);
+      }
+      const rating = getMovieRating(movie);
+      if (rating && rating !== "N/A") snippets.push(`US rating: ${rating}.`);
+      if (Number.isFinite(movie.runtime) && movie.runtime > 0) snippets.push(`Runtime: ${movie.runtime} minutes.`);
+      if (movie.studio) snippets.push(`Studio: ${movie.studio}.`);
+      if (movie.language) snippets.push(`Primary language: ${movie.language}.`);
+
+      if (snippets.length === 0) {
+        return `${movie.title} released in ${movie.year}.`;
+      }
+      return snippets.slice(0, 2).join(" ");
+    }
+
     function animatePostGamePanels() {
       const panels = [
         { el: els.resultEffort, delay: 0 },
@@ -3021,7 +3181,9 @@
 
     function renderRevealMovie(holdWinReveal = false) {
       if (!state.finished || holdWinReveal) {
+        resultRevealFlipped = false;
         els.resultReveal.classList.add("hidden");
+        els.resultReveal.classList.remove("flipped", "fact-enabled");
         els.resultReveal.classList.remove("has-image");
         els.resultReveal.classList.remove("postgame-enter");
         els.resultEffort.classList.add("hidden");
@@ -3050,6 +3212,13 @@
       }
       els.resultTitle.textContent = answer.title;
       els.resultMeta.textContent = `${answer.year} • ${answer.genres.join(", ")}`;
+      if (els.resultFactTitle) els.resultFactTitle.textContent = answer.title;
+      if (els.resultFactBody) els.resultFactBody.textContent = buildFlickleFact(answer);
+      if (els.resultTapHint) {
+        els.resultTapHint.textContent = resultRevealFlipped
+          ? "Tap card to return to result"
+          : "Tap card for a Flickle Fact";
+      }
       if (state.won) {
         els.resultEffort.classList.add("hidden");
       } else {
@@ -3062,6 +3231,7 @@
         els.resultEffortBody.textContent = `You used all ${MAX_GUESSES} guesses. ${label} ${answer.title}.`;
         els.resultEffort.classList.remove("hidden");
       }
+      applyResultRevealFlipState();
       els.resultPoster.alt = `Poster for ${answer.title}`;
       els.resultPosterFallback.textContent = answer.title.charAt(0).toUpperCase() || "?";
 
