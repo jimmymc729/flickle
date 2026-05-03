@@ -17,3 +17,24 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - `castFamiliarCount` metric for diagnostics
 - Answer picker now uses deterministic weighted selection (`pickWeightedMovie`) with stronger cast weighting in Jam mode.
 - Updated Data Health modal to show Jam-ready pool count, Jam threshold, and high cast-familiarity count.
+
+- Performance smoothing pass (May 2):
+  - Reworked logo glow animation to avoid animating `filter` per frame (now transform + opacity only).
+  - Kept static blur for look, but moved motion to GPU-friendly `translate3d + scale`.
+  - Reduced blanket `will-change` usage on `.guess-card` (now only applied to `.guess-card.latest-entry`) to lower memory pressure on long lists.
+  - Could not run Playwright automation in this environment because `node` is not installed (`zsh: command not found: node`).
+
+- Practice mode persistence upgrade:
+  - Added `flickle-practice-last-seed` and `flickle-practice-in-progress` keys.
+  - Practice seed now resumes from remembered seed when returning to `?mode=jam` without explicit seed.
+  - Practice menu button now reopens the active in-progress practice puzzle instead of always generating a new random seed.
+  - When no in-progress practice exists, Practice still starts a fresh seeded puzzle.
+- Practice resume hardening:
+  - Added `readPracticeProgress(seed)` to inspect the actual saved practice state (`flickle-jam-state-jam-<seed>`).
+  - `?mode=jam` without explicit seed now resumes remembered seed only when that saved run is truly in-progress.
+  - Practice menu click now prioritizes actual saved in-progress state before creating a new seed.
+- Added completed-daily countdown card:
+  - New UI block under result reveal: "Next Daily Puzzle" + live HH:MM:SS countdown.
+  - Shows only when Daily mode is finished (not custom/rewind/practice).
+  - Countdown targets local midnight reset.
+  - Added interval lifecycle guards so timer stops when returning to Home/menu.

@@ -432,7 +432,7 @@
       position: absolute;
       left: 50%;
       top: 48%;
-      transform: translate(-50%, -50%);
+      transform: translate3d(-50%, -50%, 0) scale(1);
       width: min(88%, 360px);
       height: 130px;
       border-radius: 999px;
@@ -698,6 +698,38 @@
       line-height: 1.35;
     }
 
+    .next-daily {
+      margin: 8px 0 12px;
+      border: 1px solid rgba(143, 123, 255, 0.38);
+      background:
+        radial-gradient(220px 90px at 50% 0%, rgba(143, 123, 255, 0.2), transparent 74%),
+        linear-gradient(180deg, rgba(20, 27, 44, 0.92), rgba(12, 17, 28, 0.95));
+      border-radius: 12px;
+      padding: 11px 14px;
+      text-align: center;
+      box-shadow: 0 0 0 1px rgba(143, 123, 255, 0.18) inset;
+    }
+    .next-daily-label {
+      color: #c8d0e6;
+      font-size: 0.76rem;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .next-daily-time {
+      margin-top: 4px;
+      color: #f4f0ff;
+      font-size: 1.1rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5px;
+    }
+    .next-daily-note {
+      margin-top: 3px;
+      color: #aeb8cf;
+      font-size: 0.8rem;
+    }
+
     .cards {
       margin-top: 10px;
       display: grid;
@@ -793,13 +825,13 @@
       padding: 11px;
       animation: reveal 200ms ease;
       transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
-      will-change: transform;
     }
 
     .guess-card.latest-entry {
       border-color: rgba(143, 123, 255, 0.45);
       box-shadow: 0 8px 24px rgba(111, 92, 255, 0.18);
       animation: card-in 260ms cubic-bezier(0.22, 0.88, 0.25, 1);
+      will-change: transform;
     }
 
     .guess-card:hover {
@@ -1023,18 +1055,15 @@
     @keyframes logo-glow-breathe {
       0% {
         opacity: 0.58;
-        transform: translate(-50%, -50%) scale(0.9);
-        filter: blur(14px) brightness(0.9);
+        transform: translate3d(-50%, -50%, 0) scale(0.92);
       }
       50% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1.14);
-        filter: blur(24px) brightness(1.2);
+        transform: translate3d(-50%, -50%, 0) scale(1.1);
       }
       100% {
         opacity: 0.58;
-        transform: translate(-50%, -50%) scale(0.9);
-        filter: blur(14px) brightness(0.9);
+        transform: translate3d(-50%, -50%, 0) scale(0.92);
       }
     }
 
@@ -1251,6 +1280,12 @@
             </div>
           </article>
 
+          <div class="next-daily hidden" id="next-daily">
+            <div class="next-daily-label">Next Daily Puzzle</div>
+            <div class="next-daily-time" id="next-daily-time">--:--:--</div>
+            <div class="next-daily-note">Resets at local midnight</div>
+          </div>
+
           <div class="finish-share hidden" id="finish-share">
             <button id="finish-share-btn" class="action" type="button">Share</button>
             <div class="share-preview" id="share-preview">
@@ -1291,6 +1326,8 @@
     const RATING_CACHE_KEY = "flickle-rating-cache-v1";
     const LANGUAGE_CACHE_KEY = "flickle-language-cache-v2";
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
+    const PRACTICE_LAST_SEED_KEY = "flickle-practice-last-seed";
+    const PRACTICE_IN_PROGRESS_KEY = "flickle-practice-in-progress";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const storageFallback = {};
     const FAMILIAR_CAST_NAMES = [
@@ -1340,6 +1377,47 @@
         console.warn("Flickle storage remove failed:", error);
       }
       delete storageFallback[key];
+    }
+
+    function getPracticeStorageKey(seed) {
+      if (!seed) return "";
+      return `flickle-jam-state-jam-${seed}`;
+    }
+
+    function readPracticeProgress(seed) {
+      if (!seed) {
+        return {
+          exists: false,
+          inProgress: false,
+          finished: false
+        };
+      }
+      const key = getPracticeStorageKey(seed);
+      const raw = storageGet(key);
+      if (!raw) {
+        return {
+          exists: false,
+          inProgress: false,
+          finished: false
+        };
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        const guessCount = Array.isArray(parsed.guesses) ? parsed.guesses.length : 0;
+        const started = Boolean(parsed.started) || guessCount > 0;
+        const finished = Boolean(parsed.finished);
+        return {
+          exists: true,
+          inProgress: started && !finished,
+          finished
+        };
+      } catch {
+        return {
+          exists: false,
+          inProgress: false,
+          finished: false
+        };
+      }
     }
 
                         const MOVIES = [
@@ -2429,6 +2507,8 @@
       resultEffort: document.getElementById("result-effort"),
       resultEffortTitle: document.getElementById("result-effort-title"),
       resultEffortBody: document.getElementById("result-effort-body"),
+      nextDaily: document.getElementById("next-daily"),
+      nextDailyTime: document.getElementById("next-daily-time"),
       finishShare: document.getElementById("finish-share"),
       finishShareBtn: document.getElementById("finish-share-btn"),
       sharePreviewTitle: document.getElementById("share-preview-title"),
@@ -2478,7 +2558,14 @@
     const requestedMode = (urlParams.get("mode") || "daily").toLowerCase();
     const gameMode = customMode ? "custom" : (requestedMode === "rewind" || requestedMode === "jam" ? requestedMode : "daily");
     const rewindOffset = -1;
-    const jamSeed = (urlParams.get("seed") || "").trim() || String(Date.now());
+    const explicitPracticeSeed = (urlParams.get("seed") || "").trim();
+    const rememberedPracticeSeed = requestedMode === "jam" && !explicitPracticeSeed
+      ? (storageGet(PRACTICE_LAST_SEED_KEY) || "").trim()
+      : "";
+    const rememberedPracticeProgress = readPracticeProgress(rememberedPracticeSeed);
+    const jamSeed = explicitPracticeSeed
+      || (rememberedPracticeProgress.inProgress ? rememberedPracticeSeed : "")
+      || String(Date.now());
     const today = new Date();
     const puzzleDate = buildPuzzleDate(today, gameMode === "rewind" ? rewindOffset : 0);
     const puzzleKey = customMode
@@ -2509,6 +2596,7 @@
       message: "",
       scored: false
     };
+    let nextDailyCountdownTimer = null;
 
     if (urlParams.get("reset") === "1") {
       storageRemove(storageKey);
@@ -2525,6 +2613,7 @@
       state.scored = true;
       persistState();
     }
+    persistPracticeSessionMemory();
     applyUiSettings();
     try {
       bindTopShell();
@@ -2737,7 +2826,10 @@
       els.intro.classList.toggle("hidden", state.started);
       els.game.classList.toggle("on", state.started);
 
-      if (!state.started) return;
+      if (!state.started) {
+        stopNextDailyCountdown();
+        return;
+      }
 
       const used = state.guesses.length;
       const currentGuess = Math.min(MAX_GUESSES, used + 1);
@@ -2763,6 +2855,14 @@
         renderSharePreview();
       }
 
+      const showNextDailyCountdown = !customMode && gameMode === "daily" && state.finished;
+      els.nextDaily.classList.toggle("hidden", !showNextDailyCountdown);
+      if (showNextDailyCountdown) {
+        startNextDailyCountdown();
+      } else {
+        stopNextDailyCountdown();
+      }
+
       els.guessInput.disabled = state.finished;
       if (state.finished) {
         if (customMode) {
@@ -2780,6 +2880,32 @@
       const submitBtn = els.guessForm.querySelector("button[type='submit']");
       submitBtn.disabled = state.finished;
       els.shareBtn.disabled = false;
+    }
+
+    function startNextDailyCountdown() {
+      if (!els.nextDailyTime) return;
+      updateNextDailyCountdown();
+      if (nextDailyCountdownTimer) return;
+      nextDailyCountdownTimer = window.setInterval(updateNextDailyCountdown, 1000);
+    }
+
+    function stopNextDailyCountdown() {
+      if (!nextDailyCountdownTimer) return;
+      window.clearInterval(nextDailyCountdownTimer);
+      nextDailyCountdownTimer = null;
+    }
+
+    function updateNextDailyCountdown() {
+      if (!els.nextDailyTime) return;
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(24, 0, 0, 0);
+      const remainingMs = Math.max(0, next.getTime() - now.getTime());
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      els.nextDailyTime.textContent = `Next daily in ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     }
 
     function renderRevealMovie() {
@@ -3565,6 +3691,14 @@
         // Never block gameplay if storage is unavailable or quota is full.
         console.warn("Flickle state save failed:", error);
       }
+      persistPracticeSessionMemory();
+    }
+
+    function persistPracticeSessionMemory() {
+      if (gameMode !== "jam") return;
+      storageSet(PRACTICE_LAST_SEED_KEY, jamSeed);
+      const inProgress = !state.finished && (state.started || state.guesses.length > 0);
+      storageSet(PRACTICE_IN_PROGRESS_KEY, inProgress ? "1" : "0");
     }
 
     function loadState() {
@@ -3644,7 +3778,14 @@
         location.search = "?mode=rewind";
       }, "mode-rewind");
       bind(els.modeJam, "click", () => {
-        const seed = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        const rememberedSeed = (storageGet(PRACTICE_LAST_SEED_KEY) || "").trim();
+        const rememberedProgress = readPracticeProgress(rememberedSeed);
+        const inProgress = rememberedProgress.inProgress || storageGet(PRACTICE_IN_PROGRESS_KEY) === "1";
+        const seed = (inProgress && rememberedSeed)
+          ? rememberedSeed
+          : `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        storageSet(PRACTICE_LAST_SEED_KEY, seed);
+        storageSet(PRACTICE_IN_PROGRESS_KEY, "1");
         location.search = `?mode=jam&seed=${encodeURIComponent(seed)}`;
       }, "mode-jam");
       bind(els.modeCreate, "click", () => {
