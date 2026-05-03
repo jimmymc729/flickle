@@ -705,15 +705,12 @@
     }
 
     .next-daily {
-      margin: 8px 0 12px;
-      border: 1px solid rgba(143, 123, 255, 0.38);
-      background:
-        radial-gradient(220px 90px at 50% 0%, rgba(143, 123, 255, 0.2), transparent 74%),
-        linear-gradient(180deg, rgba(20, 27, 44, 0.92), rgba(12, 17, 28, 0.95));
-      border-radius: 12px;
-      padding: 11px 14px;
+      margin: 4px 0 10px;
+      padding: 0;
       text-align: center;
-      box-shadow: 0 0 0 1px rgba(143, 123, 255, 0.18) inset;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
     }
     .next-daily-label {
       color: #c8d0e6;
@@ -723,12 +720,13 @@
       font-weight: 700;
     }
     .next-daily-time {
-      margin-top: 4px;
-      color: #f4f0ff;
-      font-size: 1.1rem;
-      font-weight: 800;
+      margin-top: 0;
+      color: #aeb8cf;
+      font-size: 0.9rem;
+      font-weight: 650;
       font-variant-numeric: tabular-nums;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.15px;
+      opacity: 0.9;
     }
     .next-daily-note {
       margin-top: 3px;
@@ -747,8 +745,17 @@
     .finish-share {
       margin: 2px 0 10px;
       display: grid;
-      gap: 8px;
+      gap: 7px;
       justify-items: center;
+    }
+
+    .share-cta-note {
+      margin: 0;
+      font-size: 0.78rem;
+      color: #aeb8cf;
+      letter-spacing: 0.2px;
+      text-align: center;
+      opacity: 0.9;
     }
 
     .share-preview {
@@ -998,6 +1005,18 @@
       letter-spacing: 0.45px;
       padding: 10px 22px;
       box-shadow: 0 6px 16px rgba(109, 171, 45, 0.34);
+      min-width: 150px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    #share-btn::before,
+    #finish-share-btn::before {
+      content: "\2197";
+      font-size: 0.85rem;
+      line-height: 1;
+      transform: translateY(-1px);
     }
     #share-btn:hover,
     #finish-share-btn:hover {
@@ -1295,13 +1314,12 @@
           </article>
 
           <div class="next-daily hidden" id="next-daily">
-            <div class="next-daily-label">Next Daily Puzzle</div>
             <div class="next-daily-time" id="next-daily-time">--:--:--</div>
-            <div class="next-daily-note">Resets at local midnight</div>
           </div>
 
           <div class="finish-share hidden" id="finish-share">
-            <button id="finish-share-btn" class="action" type="button">Share</button>
+            <button id="finish-share-btn" class="action" type="button">Share Result</button>
+            <p class="share-cta-note">Copies the message below</p>
             <div class="share-preview" id="share-preview">
               <div class="share-preview-label">Share Preview</div>
               <div class="share-preview-head">
@@ -1316,7 +1334,7 @@
           <div class="cards" id="cards"></div>
 
           <div class="actions">
-            <button id="share-btn" class="action" type="button">Share</button>
+            <button id="share-btn" class="action" type="button">Share Result</button>
             <button id="rules-btn" class="action" type="button">Rules</button>
           </div>
 
@@ -2901,7 +2919,7 @@
         els.finishShare.classList.remove("postgame-enter");
       }
       if (showFinishShare) {
-        els.finishShareBtn.textContent = "Share";
+        els.finishShareBtn.textContent = "Share Result";
         renderSharePreview();
       }
 
