@@ -441,6 +441,8 @@
       filter: blur(18px);
       z-index: -1;
       pointer-events: none;
+      will-change: transform, opacity;
+      animation: logo-glow-breathe 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
     .brand-logo {
@@ -1016,6 +1018,24 @@
     @keyframes status-pulse {
       from { opacity: 0.5; transform: translateY(2px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes logo-glow-breathe {
+      0% {
+        opacity: 0.58;
+        transform: translate(-50%, -50%) scale(0.9);
+        filter: blur(14px) brightness(0.9);
+      }
+      50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.14);
+        filter: blur(24px) brightness(1.2);
+      }
+      100% {
+        opacity: 0.58;
+        transform: translate(-50%, -50%) scale(0.9);
+        filter: blur(14px) brightness(0.9);
+      }
     }
 
     @media (max-width: 1000px) {
