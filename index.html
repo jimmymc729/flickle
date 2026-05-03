@@ -625,9 +625,10 @@
       cursor: pointer;
     }
     .result-flip {
-      position: relative;
+      display: grid;
       width: 100%;
       min-height: 186px;
+      align-items: stretch;
       transform-style: preserve-3d;
       transition: transform 560ms cubic-bezier(0.2, 0.65, 0.2, 1);
     }
@@ -635,9 +636,10 @@
       transform: rotateY(180deg);
     }
     .result-face {
-      position: absolute;
-      inset: 0;
+      position: relative;
+      grid-area: 1 / 1;
       padding: 10px;
+      min-height: 100%;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
     }
@@ -1247,7 +1249,7 @@
         min-height: 0;
       }
       .result-flip {
-        min-height: 252px;
+        min-height: 0;
       }
       .result-front {
         grid-template-columns: 1fr;
