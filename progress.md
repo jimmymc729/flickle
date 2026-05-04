@@ -54,3 +54,17 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - Latest card tile animations now attach after paint (`requestAnimationFrame` x2) for reliable visual playback.
   - On winning guess during win-hold, all tiles on the winning card animate together (`animationDelay = 0ms`) for full all-green celebration.
   - Non-win latest guesses keep staggered hit/near animation behavior.
+
+- Added hint economy system (discussion outcome implementation):
+  - New constants: `HINT_POINTS_HIT=3`, `HINT_POINTS_NEAR=1`, `HINT_POINT_COST=50`, `HINTS_MAX_PER_GAME=3`.
+  - Added in-game Hint Meter panel under legend (`hint-panel`) with points display, hints-used counter, buy button, and revealed hints list.
+  - Guess scoring now adds hint points from clue outcomes (green/yellow tiles only) via comparison-driven scoring.
+  - Implemented `buyHint()`:
+    - costs 50 points each purchase
+    - max 3 hints per game
+    - reveals one cast member per hint from answer cast pool
+    - deducts points and persists state.
+  - Persisted new state fields: `hintPoints`, `hintsUsed`, `revealedHintCast` (save/load compatible with old saves).
+  - Updated rules copy to mention hint-point mechanics.
+- Validation notes:
+  - Could not run Playwright loop in this environment because `node` is unavailable; manual browser validation required.

@@ -611,6 +611,218 @@
     .legend-chip.near { background: #a58b31; }
     .legend-chip.hit { background: #38874f; }
 
+    .hint-panel {
+      margin: 2px auto 9px;
+      width: 100%;
+      max-width: 420px;
+      border: 1px solid rgba(143, 123, 255, 0.3);
+      background: linear-gradient(180deg, #121829, #0d1321);
+      border-radius: 10px;
+      padding: 7px 8px;
+      text-align: left;
+    }
+
+    .hint-head {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .hint-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #c0cae1;
+      font-weight: 700;
+    }
+
+    .hint-buy-wrap {
+      display: flex;
+      justify-content: flex-end;
+      margin-left: auto;
+      margin-bottom: 0;
+    }
+
+    .hint-buy {
+      border: 1px solid rgba(160, 171, 205, 0.34);
+      background: linear-gradient(180deg, #27314b, #1d2438);
+      color: #d4ddf4;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.25px;
+      padding: 5px 12px;
+      min-height: 30px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 140ms ease, opacity 140ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+    .hint-buy:hover { filter: brightness(1.08); }
+    .hint-buy:active { transform: scale(0.98); }
+    .hint-buy:disabled {
+      opacity: 0.72;
+      cursor: not-allowed;
+      filter: grayscale(0.15);
+    }
+    .hint-buy.ready {
+      border-color: rgba(176, 151, 255, 0.76);
+      background: linear-gradient(180deg, #4745a8, #3b378f);
+      color: #f3efff;
+      box-shadow: 0 0 0 1px rgba(166, 139, 255, 0.42), 0 0 16px rgba(116, 89, 255, 0.5);
+      animation: hint-buy-glow 1.9s ease-in-out infinite;
+    }
+    @keyframes hint-buy-glow {
+      0% {
+        box-shadow: 0 0 0 1px rgba(166, 139, 255, 0.34), 0 0 9px rgba(116, 89, 255, 0.32);
+      }
+      50% {
+        box-shadow: 0 0 0 1px rgba(186, 158, 255, 0.68), 0 0 21px rgba(136, 102, 255, 0.76);
+      }
+      100% {
+        box-shadow: 0 0 0 1px rgba(166, 139, 255, 0.34), 0 0 9px rgba(116, 89, 255, 0.32);
+      }
+    }
+    .hint-progress {
+      position: relative;
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(120, 134, 173, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.38);
+      margin: 0 0 6px;
+    }
+    .hint-progress-fill {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #f1c94d 0%, #9dd35a 55%, #6ad06d 100%);
+      box-shadow: 0 0 10px rgba(142, 219, 106, 0.28);
+      transition: width 360ms cubic-bezier(0.2, 0.72, 0.2, 1), filter 180ms ease, box-shadow 180ms ease;
+    }
+    .hint-progress.ready .hint-progress-fill {
+      filter: saturate(1.08) brightness(1.03);
+      box-shadow: 0 0 0 1px rgba(176, 151, 255, 0.32), 0 0 12px rgba(116, 89, 255, 0.42);
+    }
+    .hint-progress.collecting .hint-progress-fill {
+      animation: hint-progress-collect 340ms ease;
+    }
+    @keyframes hint-progress-collect {
+      0% { filter: brightness(1) saturate(1); }
+      45% { filter: brightness(1.24) saturate(1.16); }
+      100% { filter: brightness(1) saturate(1); }
+    }
+    .point-fly-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 120;
+    }
+    .point-fly-badge {
+      position: fixed;
+      left: 0;
+      top: 0;
+      transform: translate3d(0, 0, 0);
+      padding: 2px 8px 3px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      color: #f5f8ff;
+      font-size: 0.84rem;
+      font-weight: 850;
+      letter-spacing: 0.15px;
+      line-height: 1;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+      will-change: transform, opacity;
+      opacity: 0;
+    }
+    .point-fly-badge.hit {
+      background: linear-gradient(180deg, rgba(94, 219, 118, 0.96), rgba(58, 166, 88, 0.96));
+      border-color: rgba(189, 255, 200, 0.8);
+    }
+    .point-fly-badge.near {
+      background: linear-gradient(180deg, rgba(247, 214, 87, 0.97), rgba(204, 163, 46, 0.97));
+      border-color: rgba(255, 234, 157, 0.82);
+      color: #1f2026;
+      text-shadow: none;
+    }
+
+    .hint-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 4px;
+    }
+
+    .hint-item {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(9, 13, 21, 0.64);
+      border-radius: 8px;
+      padding: 5px 7px;
+      color: #d5ddf1;
+      font-size: 0.76rem;
+      line-height: 1.35;
+    }
+
+    .hint-item-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hint-actor-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.32);
+      background: rgba(12, 16, 26, 0.8);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      position: relative;
+      line-height: 0;
+    }
+
+    .hint-actor-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+      display: none;
+    }
+
+    .hint-actor-avatar.has-image .hint-actor-img {
+      display: block;
+    }
+
+    .hint-actor-fallback {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      line-height: 1;
+      color: #eef3ff;
+      text-transform: uppercase;
+    }
+
+    .hint-actor-avatar.has-image .hint-actor-fallback {
+      display: none;
+    }
+
+    .hint-item-text {
+      font-size: 0.78rem;
+      color: #dce4f6;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+
     .result-reveal {
       margin: 8px 0 12px;
       border-radius: 12px;
@@ -816,6 +1028,13 @@
       display: grid;
       gap: 7px;
       justify-items: center;
+    }
+    .finish-share-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .share-cta-note {
@@ -1180,6 +1399,20 @@
       filter: brightness(1.06);
       box-shadow: 0 8px 18px rgba(109, 171, 45, 0.42);
     }
+    #finish-play-again-btn {
+      min-width: 134px;
+      padding: 9px 16px;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+      color: #c8d0e5;
+      border-color: rgba(255, 255, 255, 0.18);
+      background: linear-gradient(180deg, rgba(34, 45, 72, 0.86), rgba(21, 29, 46, 0.88));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+    #finish-play-again-btn:hover {
+      filter: brightness(1.06);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
 
     .footer-note {
       margin-top: 9px;
@@ -1467,6 +1700,19 @@
             <span class="legend-chip hit">Match</span>
           </div>
 
+          <section class="hint-panel" id="hint-panel" aria-live="polite">
+            <div class="hint-head">
+              <div class="hint-title">Hint Meter</div>
+              <div class="hint-buy-wrap">
+                <button id="hint-buy-btn" class="hint-buy" type="button">Buy Hint (50)</button>
+              </div>
+            </div>
+            <div class="hint-progress" id="hint-progress" role="progressbar" aria-label="Hint progress" aria-valuemin="0" aria-valuemax="50" aria-valuenow="0">
+              <span class="hint-progress-fill" id="hint-progress-fill"></span>
+            </div>
+            <ul class="hint-list" id="hint-list"></ul>
+          </section>
+
           <div class="result-effort hidden" id="result-effort" role="status" aria-live="polite">
             <div class="result-effort-title" id="result-effort-title"></div>
             <div class="result-effort-body" id="result-effort-body"></div>
@@ -1499,7 +1745,10 @@
           </div>
 
           <div class="finish-share hidden" id="finish-share">
-            <button id="finish-share-btn" class="action" type="button">Share Result</button>
+            <div class="finish-share-actions">
+              <button id="finish-share-btn" class="action" type="button">Share Result</button>
+              <button id="finish-play-again-btn" class="action hidden" type="button">Play Again</button>
+            </div>
             <p class="share-cta-note">Copies the message below</p>
             <div class="share-preview" id="share-preview">
               <div class="share-preview-label">Share Preview</div>
@@ -1519,7 +1768,7 @@
             <button id="rules-btn" class="action" type="button">Rules</button>
           </div>
 
-          <div class="footer-note" id="rules-text">10 guesses. Year, runtime, title words, and box office include directional hints.</div>
+          <div class="footer-note" id="rules-text">10 guesses. Year, runtime, title words, and box office include directional hints. Green +3 and yellow +1 feed hint points.</div>
         </section>
       </section>
 
@@ -1529,6 +1778,10 @@
 
   <script>
     const MAX_GUESSES = 10;
+    const HINT_POINTS_HIT = 3;
+    const HINT_POINTS_NEAR = 1;
+    const HINT_POINT_COST = 50;
+    const HINTS_MAX_PER_GAME = 3;
     const WIN_REVEAL_HOLD_MS = 2000;
     const WIN_REVEAL_SCROLL_DELAY_MS = 220;
     const ANSWER_MIN_VOTES = 1200;
@@ -2747,6 +3000,11 @@
       cards: document.getElementById("cards"),
       status: document.getElementById("status"),
       options: document.getElementById("movie-options"),
+      hintPanel: document.getElementById("hint-panel"),
+      hintBuyBtn: document.getElementById("hint-buy-btn"),
+      hintProgress: document.getElementById("hint-progress"),
+      hintProgressFill: document.getElementById("hint-progress-fill"),
+      hintList: document.getElementById("hint-list"),
       shareBtn: document.getElementById("share-btn"),
       rulesBtn: document.getElementById("rules-btn"),
       resultReveal: document.getElementById("result-reveal"),
@@ -2766,6 +3024,7 @@
       nextDailyTime: document.getElementById("next-daily-time"),
       finishShare: document.getElementById("finish-share"),
       finishShareBtn: document.getElementById("finish-share-btn"),
+      finishPlayAgainBtn: document.getElementById("finish-play-again-btn"),
       sharePreviewTitle: document.getElementById("share-preview-title"),
       sharePreviewText: document.getElementById("share-preview-text"),
       rulesText: document.getElementById("rules-text"),
@@ -2852,7 +3111,10 @@
       won: false,
       winCelebrating: false,
       message: "",
-      scored: false
+      scored: false,
+      hintPoints: 0,
+      hintsUsed: 0,
+      revealedHintCast: []
     };
     let nextDailyCountdownTimer = null;
     let winRevealHoldUntil = 0;
@@ -2864,6 +3126,9 @@
     let activeResultFactTitle = "";
     let activeResultFactText = "";
     let movieFactBankCache = null;
+    let lastPointFxGuessCount = 0;
+    let pointFlyLayerEl = null;
+    let pointFlyCollectPulseTimer = null;
 
     if (urlParams.get("reset") === "1") {
       storageRemove(storageKey);
@@ -2875,6 +3140,7 @@
       state.message = buildCompletionStatusMessage();
     }
     if (state.guesses.length > 0 || state.finished) state.started = true;
+    lastPointFxGuessCount = state.guesses.length;
     if (state.finished && !state.scored) {
       applyResultStats();
       state.scored = true;
@@ -2962,6 +3228,20 @@
       els.finishShareBtn.addEventListener("click", function () {
         handleShareClick(true, this);
       });
+      if (els.finishPlayAgainBtn) {
+        els.finishPlayAgainBtn.addEventListener("click", () => {
+          const nextSeed = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+          storageSet(PRACTICE_LAST_SEED_KEY, nextSeed);
+          storageSet(PRACTICE_IN_PROGRESS_KEY, "1");
+          location.search = `?mode=jam&seed=${encodeURIComponent(nextSeed)}`;
+        });
+      }
+
+      if (els.hintBuyBtn) {
+        els.hintBuyBtn.addEventListener("click", () => {
+          buyHint();
+        });
+      }
 
       const handlePreviewCopy = () => {
         trackAnalyticsEvent("share_clicked", {
@@ -3031,10 +3311,10 @@
     els.rulesBtn.addEventListener("click", () => {
       const expanded = els.rulesText.dataset.expanded === "1";
       if (expanded) {
-        els.rulesText.textContent = "10 guesses. Year, runtime, title words, and box office include directional hints.";
+        els.rulesText.textContent = "10 guesses. Year, runtime, title words, and box office include directional hints. Green +3 and yellow +1 feed hint points.";
         els.rulesText.dataset.expanded = "0";
       } else {
-        els.rulesText.textContent = "Year: green exact, yellow within 5 years, arrows show later/earlier. Runtime: green exact, yellow within 10 minutes, arrows show longer/shorter. Title words: green exact, yellow within 1 word, arrows show more/fewer words. Genre: any overlap is match, and multiple shared genres appear as separate match tiles. Director: exact match. Cast: any shared actor counts as a match and each shared actor is shown in its own tile. Studio: green exact. Rating: green exact, yellow when one rating step away (PG ↔ PG-13, etc.). Box office: bucketed range with higher/lower arrows and yellow when one bucket away. Country: green exact. Language: green exact. Franchise: binary yes/no; green when yes/no matches.";
+        els.rulesText.textContent = "Year: green exact, yellow within 5 years, arrows show later/earlier. Runtime: green exact, yellow within 10 minutes, arrows show longer/shorter. Title words: green exact, yellow within 1 word, arrows show more/fewer words. Genre: any overlap is match, and multiple shared genres appear as separate match tiles. Director: exact match. Cast: any shared actor counts as a match and each shared actor is shown in its own tile. Studio: green exact. Rating: green exact, yellow when one rating step away (PG ↔ PG-13, etc.). Box office: bucketed range with higher/lower arrows and yellow when one bucket away. Country: green exact. Language: green exact. Franchise: binary yes/no; green when yes/no matches. Hint meter: green cards add +3 points, yellow add +1, and every 50 points can be spent on one cast hint (up to 3 hints per game).";
         els.rulesText.dataset.expanded = "1";
       }
     });
@@ -3065,12 +3345,18 @@
 
       state.guesses.push(guessMovie);
       els.guessInput.value = "";
+      const pointGain = scoreHintPointsForGuess(guessMovie, answer);
+      if (pointGain > 0) {
+        state.hintPoints += pointGain;
+      }
       trackAnalyticsEvent("guess_submitted", {
         game_mode: gameMode,
         custom_mode: customMode ? "yes" : "no",
         puzzle_key: puzzleKey,
         guess_title: guessMovie.title,
-        guess_number: state.guesses.length
+        guess_number: state.guesses.length,
+        hint_points_gained: pointGain,
+        hint_points_total: state.hintPoints
       });
 
       if (normalize(guessMovie.title) === normalize(answer.title)) {
@@ -3192,6 +3478,7 @@
       } else {
         setStatus(state.message || `${MAX_GUESSES - used} guesses left.`);
       }
+      renderHintPanel();
 
       const showFinishShare = state.finished && !customMode && !holdWinReveal;
       els.finishShare.classList.toggle("hidden", !showFinishShare);
@@ -3199,8 +3486,14 @@
         els.finishShare.classList.remove("postgame-enter");
       }
       if (showFinishShare) {
+        if (els.finishPlayAgainBtn) {
+          const showPracticePlayAgain = gameMode === "jam";
+          els.finishPlayAgainBtn.classList.toggle("hidden", !showPracticePlayAgain);
+        }
         els.finishShareBtn.textContent = "Share Result";
         renderSharePreview();
+      } else if (els.finishPlayAgainBtn) {
+        els.finishPlayAgainBtn.classList.add("hidden");
       }
 
       const showNextDailyCountdown = !customMode && gameMode === "daily" && state.finished && !holdWinReveal;
@@ -3687,6 +3980,10 @@
           const tilesToAnimate = animateWinningCard
             ? tiles
             : tiles.filter((tile) => tile.classList.contains("hit") || tile.classList.contains("near"));
+          const shouldPlayPointFlyFx = !animateWinningCard
+            && !state.finished
+            && safeGuesses.length > lastPointFxGuessCount
+            && tilesToAnimate.length > 0;
 
           if (tilesToAnimate.length > 0) {
             // Apply after paint so the rotation is consistently visible.
@@ -3701,13 +3998,346 @@
                   tile.classList.add("tile-enter");
                   tile.style.animationDelay = `${tileIndex * 24}ms`;
                 });
+                if (shouldPlayPointFlyFx) {
+                  playHintPointFlyFx(tilesToAnimate);
+                }
               });
             });
           }
         }
       }
+      lastPointFxGuessCount = safeGuesses.length;
       ensureRatingDataForMovie(answer);
       ensureLanguageDataForMovie(answer);
+    }
+
+    function prefersReducedMotion() {
+      return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    }
+
+    function getPointFlyLayer() {
+      if (pointFlyLayerEl && pointFlyLayerEl.isConnected) return pointFlyLayerEl;
+      pointFlyLayerEl = document.createElement("div");
+      pointFlyLayerEl.className = "point-fly-layer";
+      document.body.appendChild(pointFlyLayerEl);
+      return pointFlyLayerEl;
+    }
+
+    function pulseHintProgressCollect() {
+      if (!els.hintProgress) return;
+      els.hintProgress.classList.remove("collecting");
+      void els.hintProgress.offsetWidth;
+      els.hintProgress.classList.add("collecting");
+      if (pointFlyCollectPulseTimer) {
+        window.clearTimeout(pointFlyCollectPulseTimer);
+      }
+      pointFlyCollectPulseTimer = window.setTimeout(() => {
+        pointFlyCollectPulseTimer = null;
+        if (els.hintProgress) els.hintProgress.classList.remove("collecting");
+      }, 360);
+    }
+
+    function playHintPointFlyFx(tilesToAnimate) {
+      if (!Array.isArray(tilesToAnimate) || tilesToAnimate.length === 0) return;
+      if (!els.hintProgress || els.hintPanel.classList.contains("hidden")) return;
+      if (prefersReducedMotion()) return;
+
+      const targetRect = els.hintProgress.getBoundingClientRect();
+      if (!targetRect || targetRect.width <= 0 || targetRect.height <= 0) return;
+
+      let totalGain = 0;
+      for (const tile of tilesToAnimate) {
+        if (tile.classList.contains("hit")) totalGain += HINT_POINTS_HIT;
+        else if (tile.classList.contains("near")) totalGain += HINT_POINTS_NEAR;
+      }
+      const finalPoints = Math.max(0, Math.min(HINT_POINT_COST, Number(state.hintPoints || 0)));
+      const startPoints = Math.max(0, finalPoints - totalGain);
+      const startRatio = HINT_POINT_COST > 0 ? (startPoints / HINT_POINT_COST) : 0;
+      const fillRatio = HINT_POINT_COST > 0 ? (finalPoints / HINT_POINT_COST) : 0;
+      const targetX = targetRect.left + Math.max(14, targetRect.width * Math.max(fillRatio, 0.08));
+      const targetY = targetRect.top + targetRect.height / 2;
+      const layer = getPointFlyLayer();
+      if (els.hintProgressFill) {
+        els.hintProgressFill.style.width = `${startRatio * 100}%`;
+      }
+      if (pointFlyCollectPulseTimer) {
+        window.clearTimeout(pointFlyCollectPulseTimer);
+        pointFlyCollectPulseTimer = null;
+      }
+
+      let maxImpactDelay = 0;
+      let runningProgressPoints = startPoints;
+      const impactEvents = [];
+
+      tilesToAnimate.forEach((tile, tileIndex) => {
+        const isHit = tile.classList.contains("hit");
+        const isNear = tile.classList.contains("near");
+        if (!isHit && !isNear) return;
+
+        const tileRect = tile.getBoundingClientRect();
+        if (!tileRect || tileRect.width <= 0 || tileRect.height <= 0) return;
+        const startX = tileRect.left + tileRect.width / 2;
+        const startY = tileRect.top + Math.min(tileRect.height * 0.34, 32);
+        const pointValue = isHit ? HINT_POINTS_HIT : HINT_POINTS_NEAR;
+
+        const badge = document.createElement("span");
+        badge.className = `point-fly-badge ${isHit ? "hit" : "near"}`;
+        badge.textContent = `+${pointValue}`;
+        layer.appendChild(badge);
+
+        const startDelay = 140 + (tileIndex * 36);
+        const duration = 1060;
+        const impactAt = startDelay + Math.round(duration * 0.86);
+        maxImpactDelay = Math.max(maxImpactDelay, impactAt);
+        impactEvents.push({ impactAt, pointValue });
+        const midX = startX + ((targetX - startX) * 0.38);
+        const midY = startY - 22 - (tileIndex % 3) * 5;
+        const anim = badge.animate([
+          { transform: `translate3d(${startX}px, ${startY}px, 0) scale(0.72)`, opacity: 0 },
+          { transform: `translate3d(${startX}px, ${startY - 12}px, 0) scale(1)`, opacity: 1, offset: 0.18 },
+          { transform: `translate3d(${midX}px, ${midY}px, 0) scale(0.93)`, opacity: 0.98, offset: 0.56 },
+          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.66)`, opacity: 0.94, offset: 0.86 },
+          { transform: `translate3d(${targetX + 2}px, ${targetY - 4}px, 0) scale(0.56)`, opacity: 0 }
+        ], {
+          duration,
+          delay: startDelay,
+          easing: "cubic-bezier(0.18, 0.78, 0.2, 1)",
+          fill: "forwards"
+        });
+
+        anim.onfinish = () => {
+          badge.remove();
+        };
+      });
+
+      impactEvents
+        .sort((a, b) => a.impactAt - b.impactAt)
+        .forEach(({ impactAt, pointValue }) => {
+          window.setTimeout(() => {
+            runningProgressPoints = Math.max(0, Math.min(HINT_POINT_COST, runningProgressPoints + pointValue));
+            const ratio = HINT_POINT_COST > 0 ? (runningProgressPoints / HINT_POINT_COST) : 0;
+            if (els.hintProgressFill) {
+              els.hintProgressFill.style.width = `${ratio * 100}%`;
+            }
+            pulseHintProgressCollect();
+          }, Math.max(0, impactAt));
+        });
+
+      // Snap to the final value at the end to avoid tiny drift.
+      window.setTimeout(() => {
+        if (els.hintProgressFill) {
+          els.hintProgressFill.style.width = `${fillRatio * 100}%`;
+        }
+      }, Math.max(120, maxImpactDelay + 80));
+    }
+
+    function getTileStatesFromComparisonResults(results) {
+      const states = [];
+      if (!results || typeof results !== "object") return states;
+
+      const scalarKeys = [
+        "year",
+        "runtime",
+        "titleWords",
+        "director",
+        "studio",
+        "rating",
+        "boxOffice",
+        "country",
+        "language",
+        "franchise"
+      ];
+      for (const key of scalarKeys) {
+        const stateValue = results[key] && typeof results[key].state === "string" ? results[key].state : "na";
+        states.push(stateValue);
+      }
+
+      if (results.genre && Array.isArray(results.genre.matches) && results.genre.matches.length > 1) {
+        for (let i = 0; i < results.genre.matches.length; i += 1) states.push("hit");
+      } else {
+        states.push(results.genre && typeof results.genre.state === "string" ? results.genre.state : "na");
+      }
+
+      if (results.cast && Array.isArray(results.cast.matches) && results.cast.matches.length > 0) {
+        for (let i = 0; i < results.cast.matches.length; i += 1) states.push("hit");
+      } else {
+        states.push(results.cast && typeof results.cast.state === "string" ? results.cast.state : "miss");
+      }
+
+      return states;
+    }
+
+    function getPointsForTileState(tileState) {
+      if (tileState === "hit") return HINT_POINTS_HIT;
+      if (tileState === "near") return HINT_POINTS_NEAR;
+      return 0;
+    }
+
+    function scoreHintPointsForGuess(guessMovie, targetMovie) {
+      if (!guessMovie || !targetMovie) return 0;
+      let results;
+      try {
+        results = {
+          year: compareYear(guessMovie.year, targetMovie.year),
+          runtime: compareRuntime(guessMovie.runtime, targetMovie.runtime),
+          titleWords: compareTitleWordCount(guessMovie.title, targetMovie.title),
+          genre: compareGenre(guessMovie.genres, targetMovie.genres),
+          director: compareExact(guessMovie.director, targetMovie.director),
+          cast: compareCastMatches(guessMovie.cast, targetMovie.cast),
+          studio: compareStudio(guessMovie.studio, targetMovie.studio),
+          rating: compareRating(guessMovie, targetMovie),
+          boxOffice: compareBoxOffice(guessMovie.boxOffice, targetMovie.boxOffice),
+          country: compareCountry(guessMovie, targetMovie),
+          language: compareLanguage(guessMovie, targetMovie),
+          franchise: compareFranchise(guessMovie.franchise, targetMovie.franchise)
+        };
+      } catch (error) {
+        console.warn("Hint point scoring skipped due to data error:", error);
+        return 0;
+      }
+
+      const tileStates = getTileStatesFromComparisonResults(results);
+      return tileStates.reduce((total, stateValue) => total + getPointsForTileState(stateValue), 0);
+    }
+
+    function getHintCastPool() {
+      if (!answer || !Array.isArray(answer.cast)) return [];
+      const unique = [];
+      const seen = new Set();
+      for (const rawName of answer.cast) {
+        const name = String(rawName || "").trim();
+        if (!name) continue;
+        const key = normalize(name);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        unique.push(name);
+      }
+      return unique;
+    }
+
+    function buyHint() {
+      if (!state.started || state.finished) return;
+      if (state.hintsUsed >= HINTS_MAX_PER_GAME) {
+        setStatus("No hints left for this puzzle.", "error");
+        playUiSound("error");
+        return;
+      }
+      if (state.hintPoints < HINT_POINT_COST) {
+        const needed = HINT_POINT_COST - state.hintPoints;
+        setStatus(`${needed} more points needed for the next hint.`, "error");
+        playUiSound("error");
+        return;
+      }
+
+      const hintPool = getHintCastPool();
+      if (!hintPool.length) {
+        setStatus("No cast hint available for this movie.", "error");
+        playUiSound("error");
+        return;
+      }
+      const shownKeys = new Set((Array.isArray(state.revealedHintCast) ? state.revealedHintCast : []).map((name) => normalize(name)));
+      const nextHint = hintPool.find((name) => !shownKeys.has(normalize(name)));
+      if (!nextHint) {
+        setStatus("All available cast hints are already revealed.", "complete");
+        playUiSound("toggle-on");
+        return;
+      }
+
+      state.hintPoints -= HINT_POINT_COST;
+      state.hintsUsed += 1;
+      if (!Array.isArray(state.revealedHintCast)) state.revealedHintCast = [];
+      state.revealedHintCast.push(nextHint);
+      state.message = `Hint unlocked: ${nextHint}.`;
+      trackAnalyticsEvent("hint_bought", {
+        game_mode: gameMode,
+        custom_mode: customMode ? "yes" : "no",
+        puzzle_key: puzzleKey,
+        hints_used: state.hintsUsed,
+        hint_points_remaining: state.hintPoints
+      });
+      renderAll();
+      persistState();
+      playUiSound("toggle-on");
+    }
+
+    function renderHintPanel() {
+      if (!els.hintPanel) return;
+      const showHintPanel = state.started && !state.finished;
+      els.hintPanel.classList.toggle("hidden", !showHintPanel);
+      if (!showHintPanel) return;
+
+      const points = Math.max(0, Number(state.hintPoints) || 0);
+      const hintsUsed = Math.max(0, Math.min(HINTS_MAX_PER_GAME, Number(state.hintsUsed) || 0));
+      const hintsLeft = Math.max(0, HINTS_MAX_PER_GAME - hintsUsed);
+      const hintPool = getHintCastPool();
+      const shownKeys = new Set((Array.isArray(state.revealedHintCast) ? state.revealedHintCast : []).map((name) => normalize(name)));
+      const hasUnrevealedCastHint = hintPool.some((name) => !shownKeys.has(normalize(name)));
+      const canBuy = state.started && !state.finished && hintsLeft > 0 && points >= HINT_POINT_COST && hasUnrevealedCastHint;
+      const progressNow = Math.max(0, Math.min(HINT_POINT_COST, points));
+      const progressPercent = HINT_POINT_COST > 0 ? (progressNow / HINT_POINT_COST) * 100 : 0;
+
+      if (els.hintProgress && els.hintProgressFill) {
+        els.hintProgressFill.style.width = `${progressPercent}%`;
+        els.hintProgress.classList.toggle("ready", canBuy);
+        els.hintProgress.setAttribute("aria-valuenow", String(progressNow));
+      }
+
+      if (els.hintBuyBtn) {
+        els.hintBuyBtn.textContent = `${points} pts`;
+        els.hintBuyBtn.disabled = !canBuy;
+        els.hintBuyBtn.classList.toggle("ready", canBuy);
+      }
+
+      const hints = Array.isArray(state.revealedHintCast) ? state.revealedHintCast : [];
+      if (els.hintList) {
+        els.hintList.innerHTML = "";
+        for (let i = 0; i < hints.length; i += 1) {
+          const item = document.createElement("li");
+          item.className = "hint-item";
+          const actorName = hints[i];
+          item.innerHTML = `
+            <div class="hint-item-main">
+              <span class="hint-actor-avatar" data-cast-name="${escapeHtml(actorName)}" aria-hidden="true">
+                <img class="hint-actor-img" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <span class="hint-actor-fallback">${escapeHtml(getActorInitials(actorName))}</span>
+              </span>
+              <span class="hint-item-text">${escapeHtml(actorName)}</span>
+            </div>
+          `;
+          els.hintList.appendChild(item);
+          hydrateHintActorAvatar(item, actorName);
+        }
+      }
+    }
+
+    function hydrateHintActorAvatar(scope, actorName) {
+      if (!scope) return;
+      const avatar = scope.querySelector(".hint-actor-avatar");
+      const img = scope.querySelector(".hint-actor-img");
+      const fallback = scope.querySelector(".hint-actor-fallback");
+      if (!avatar || !img || !fallback) return;
+
+      fallback.textContent = getActorInitials(actorName);
+      const key = normalize(actorName);
+      const cached = castPortraitCache[key];
+      if (cached) {
+        img.src = cached;
+        avatar.classList.add("has-image");
+        return;
+      }
+      if (castPortraitLookupsInFlight.has(key)) return;
+      castPortraitLookupsInFlight.add(key);
+      fetchCastPortraitForName(actorName).then((url) => {
+        if (!url) return;
+        castPortraitCache[key] = url;
+        persistCastPortraitCache(castPortraitCache);
+        img.src = url;
+        avatar.classList.add("has-image");
+      }).catch(() => {
+        // Keep fallback initials when a portrait cannot be fetched.
+      }).finally(() => {
+        castPortraitLookupsInFlight.delete(key);
+      });
     }
 
     function hydrateAvatar(card, movie) {
@@ -4517,7 +5147,10 @@
         finished: state.finished,
         won: state.won,
         message: state.message,
-        scored: state.scored
+        scored: state.scored,
+        hintPoints: state.hintPoints,
+        hintsUsed: state.hintsUsed,
+        revealedHintCast: Array.isArray(state.revealedHintCast) ? state.revealedHintCast : []
       };
       try {
         storageSet(storageKey, JSON.stringify(payload));
@@ -4555,6 +5188,13 @@
         state.won = Boolean(parsed.won);
         state.message = typeof parsed.message === "string" ? parsed.message : "";
         state.scored = Boolean(parsed.scored);
+        state.hintPoints = Math.max(0, Number(parsed.hintPoints) || 0);
+        state.hintsUsed = Math.max(0, Math.min(HINTS_MAX_PER_GAME, Number(parsed.hintsUsed) || 0));
+        state.revealedHintCast = Array.isArray(parsed.revealedHintCast)
+          ? parsed.revealedHintCast
+            .map((name) => String(name || "").trim())
+            .filter(Boolean)
+          : [];
 
         // Backward compatibility for older saves that did not persist `won`
         // reliably: if a finished game contains the answer in guesses, treat it as solved.
