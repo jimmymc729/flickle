@@ -1448,6 +1448,7 @@
     const PRACTICE_LAST_SEED_KEY = "flickle-practice-last-seed";
     const PRACTICE_IN_PROGRESS_KEY = "flickle-practice-in-progress";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
+    const UI_SOUND_TYPES = Object.freeze(["start", "guess", "share", "win", "lose", "error", "toggle-on"]);
     const storageFallback = {};
     const FAMILIAR_CAST_NAMES = [
       "Tom Hanks", "Leonardo DiCaprio", "Brad Pitt", "Morgan Freeman", "Robert De Niro",
@@ -2751,14 +2752,25 @@
       state.scored = true;
       persistState();
     }
+    // Bind core game controls as early as possible so non-critical setup
+    // failures (like audio/media permissions) cannot freeze gameplay.
+    bindCoreInteractions();
     persistPracticeSessionMemory();
-    applyUiSettings();
+    try {
+      applyUiSettings();
+    } catch (error) {
+      console.error("Flickle UI settings init failed:", error);
+    }
+    try {
+      primeUiSounds();
+    } catch (error) {
+      console.error("Flickle sound init failed:", error);
+    }
     try {
       bindTopShell();
     } catch (error) {
       console.error("Flickle shell init failed:", error);
     }
-    bindCoreInteractions();
     window.addEventListener("resize", syncResultRevealHeight, { passive: true });
     // Defer first paint until the script fully initializes all constants/functions.
     // This avoids refresh-time clue card drops when restoring in-progress games.
@@ -3883,13 +3895,21 @@
     }
 
     let uiAudioContext = null;
+    let uiAudioMasterGain = null;
+    let uiNoiseBuffer = null;
+
+    function primeUiSounds() {
+      // Synthetic audio: lazily initialized on first user action to respect autoplay rules.
+    }
 
     function ensureUiAudio() {
-      if (!uiSettings.soundEnabled) return null;
-      const AudioCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtor) return null;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
       if (!uiAudioContext) {
-        uiAudioContext = new AudioCtor();
+        uiAudioContext = new Ctx();
+        uiAudioMasterGain = uiAudioContext.createGain();
+        uiAudioMasterGain.gain.value = 0.62;
+        uiAudioMasterGain.connect(uiAudioContext.destination);
       }
       if (uiAudioContext.state === "suspended") {
         uiAudioContext.resume().catch(() => {});
@@ -3897,54 +3917,172 @@
       return uiAudioContext;
     }
 
-    function playTone(ctx, startTime, frequency, duration, volume = 0.05, type = "sine") {
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, startTime);
-      gain.gain.setValueAtTime(0.0001, startTime);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), startTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration + 0.02);
+    function getUiNoiseBuffer(ctx) {
+      if (uiNoiseBuffer && uiNoiseBuffer.sampleRate === ctx.sampleRate) return uiNoiseBuffer;
+      const length = Math.max(1, Math.floor(ctx.sampleRate * 0.2));
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const channel = buffer.getChannelData(0);
+      for (let i = 0; i < length; i += 1) {
+        channel[i] = (Math.random() * 2 - 1) * (1 - i / length);
+      }
+      uiNoiseBuffer = buffer;
+      return uiNoiseBuffer;
+    }
+
+    function scheduleTone(ctx, opts) {
+      const {
+        start = ctx.currentTime,
+        duration = 0.08,
+        type = "sine",
+        from = 440,
+        to = from,
+        gain = 0.12
+      } = opts || {};
+      const osc = ctx.createOscillator();
+      const amp = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(Math.max(40, from), start);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(40, to), start + duration);
+      amp.gain.setValueAtTime(0.0001, start);
+      amp.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain), start + Math.min(0.015, duration * 0.25));
+      amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(amp);
+      amp.connect(uiAudioMasterGain);
+      osc.start(start);
+      osc.stop(start + duration + 0.02);
+    }
+
+    function schedulePopNoise(ctx, opts) {
+      const {
+        start = ctx.currentTime,
+        duration = 0.045,
+        gain = 0.11,
+        frequency = 1750,
+        q = 1.6
+      } = opts || {};
+      const src = ctx.createBufferSource();
+      src.buffer = getUiNoiseBuffer(ctx);
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = Math.max(120, frequency);
+      filter.Q.value = Math.max(0.1, q);
+      const amp = ctx.createGain();
+      amp.gain.setValueAtTime(0.0001, start);
+      amp.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain), start + 0.006);
+      amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      src.connect(filter);
+      filter.connect(amp);
+      amp.connect(uiAudioMasterGain);
+      src.start(start);
+      src.stop(start + duration + 0.01);
+    }
+
+    function schedulePopcornClick(ctx, start, intensity = 1) {
+      const hit = Math.max(0.4, Math.min(1.4, intensity));
+      schedulePopNoise(ctx, {
+        start,
+        duration: 0.011,
+        gain: 0.06 * hit,
+        frequency: 2850,
+        q: 2.7
+      });
+      schedulePopNoise(ctx, {
+        start: start + 0.0045,
+        duration: 0.015,
+        gain: 0.045 * hit,
+        frequency: 2100,
+        q: 1.9
+      });
+      scheduleTone(ctx, {
+        start: start + 0.001,
+        duration: 0.014,
+        type: "triangle",
+        from: 1550,
+        to: 980,
+        gain: 0.02 * hit
+      });
+    }
+
+    function scheduleBubbleCluster(ctx, start, size = "medium") {
+      const sets = size === "large"
+        ? [
+            { dt: 0.012, from: 560, to: 760, dur: 0.052, gain: 0.018 },
+            { dt: 0.040, from: 640, to: 880, dur: 0.048, gain: 0.017 },
+            { dt: 0.072, from: 730, to: 1010, dur: 0.045, gain: 0.0165 },
+            { dt: 0.102, from: 860, to: 1180, dur: 0.042, gain: 0.015 }
+          ]
+        : [
+            { dt: 0.016, from: 620, to: 860, dur: 0.046, gain: 0.0165 },
+            { dt: 0.052, from: 760, to: 1040, dur: 0.041, gain: 0.0155 },
+            { dt: 0.084, from: 900, to: 1220, dur: 0.038, gain: 0.0145 }
+          ];
+
+      for (const bubble of sets) {
+        const ts = start + bubble.dt;
+        scheduleTone(ctx, {
+          start: ts,
+          duration: bubble.dur,
+          type: "sine",
+          from: bubble.from,
+          to: bubble.to,
+          gain: bubble.gain
+        });
+        schedulePopNoise(ctx, {
+          start: ts,
+          duration: 0.018,
+          gain: bubble.gain * 0.35,
+          frequency: 1700,
+          q: 1.1
+        });
+      }
     }
 
     function playUiSound(kind) {
       if (!uiSettings.soundEnabled) return;
+      if (!UI_SOUND_TYPES.includes(kind)) return;
       const ctx = ensureUiAudio();
-      if (!ctx) return;
-      const now = ctx.currentTime + 0.005;
-      switch (kind) {
-        case "start":
-          playTone(ctx, now, 392, 0.08, 0.045, "triangle");
-          playTone(ctx, now + 0.09, 523.25, 0.11, 0.05, "triangle");
-          break;
-        case "guess":
-          playTone(ctx, now, 420, 0.07, 0.04, "triangle");
-          break;
-        case "share":
-          playTone(ctx, now, 660, 0.08, 0.05, "triangle");
-          playTone(ctx, now + 0.09, 784, 0.09, 0.04, "triangle");
-          break;
-        case "win":
-          playTone(ctx, now, 523.25, 0.09, 0.05, "triangle");
-          playTone(ctx, now + 0.1, 659.25, 0.1, 0.05, "triangle");
-          playTone(ctx, now + 0.2, 783.99, 0.12, 0.06, "triangle");
-          break;
-        case "lose":
-          playTone(ctx, now, 320, 0.1, 0.04, "sawtooth");
-          playTone(ctx, now + 0.1, 260, 0.13, 0.035, "sawtooth");
-          break;
-        case "error":
-          playTone(ctx, now, 220, 0.07, 0.03, "square");
-          break;
-        case "toggle-on":
-          playTone(ctx, now, 740, 0.08, 0.04, "triangle");
-          break;
-        default:
-          break;
+      if (!ctx || !uiAudioMasterGain) return;
+      const t = ctx.currentTime + 0.01;
+
+      try {
+        if (kind === "guess") {
+          // A dry popcorn crack, followed by soft soda-like bubble pops as clues flip.
+          schedulePopcornClick(ctx, t, 1);
+          scheduleBubbleCluster(ctx, t + 0.004, "medium");
+          return;
+        }
+        if (kind === "start") {
+          scheduleTone(ctx, { start: t, duration: 0.08, type: "sine", from: 300, to: 430, gain: 0.07 });
+          scheduleTone(ctx, { start: t + 0.03, duration: 0.09, type: "triangle", from: 410, to: 520, gain: 0.05 });
+          return;
+        }
+        if (kind === "share") {
+          scheduleTone(ctx, { start: t, duration: 0.08, type: "sine", from: 660, to: 760, gain: 0.055 });
+          scheduleTone(ctx, { start: t + 0.055, duration: 0.085, type: "sine", from: 840, to: 940, gain: 0.05 });
+          return;
+        }
+        if (kind === "win") {
+          scheduleTone(ctx, { start: t, duration: 0.09, type: "triangle", from: 520, to: 700, gain: 0.07 });
+          scheduleTone(ctx, { start: t + 0.06, duration: 0.1, type: "triangle", from: 700, to: 920, gain: 0.065 });
+          scheduleTone(ctx, { start: t + 0.12, duration: 0.12, type: "sine", from: 920, to: 1120, gain: 0.05 });
+          return;
+        }
+        if (kind === "lose") {
+          scheduleTone(ctx, { start: t, duration: 0.1, type: "sine", from: 380, to: 270, gain: 0.06 });
+          scheduleTone(ctx, { start: t + 0.08, duration: 0.14, type: "triangle", from: 280, to: 180, gain: 0.045 });
+          return;
+        }
+        if (kind === "error") {
+          schedulePopNoise(ctx, { start: t, duration: 0.03, gain: 0.06 });
+          scheduleTone(ctx, { start: t, duration: 0.045, type: "sawtooth", from: 260, to: 210, gain: 0.04 });
+          return;
+        }
+        if (kind === "toggle-on") {
+          scheduleTone(ctx, { start: t, duration: 0.06, type: "sine", from: 560, to: 740, gain: 0.05 });
+          scheduleTone(ctx, { start: t + 0.03, duration: 0.07, type: "triangle", from: 720, to: 980, gain: 0.04 });
+        }
+      } catch {
+        // Keep gameplay uninterrupted if audio scheduling fails.
       }
     }
 
@@ -4297,8 +4435,10 @@
     }
 
     function applyUiSettings() {
-      els.audioBtn.classList.toggle("audio-off", !uiSettings.soundEnabled);
-      els.audioBtn.textContent = uiSettings.soundEnabled ? "🔊" : "🔇";
+      if (els.audioBtn) {
+        els.audioBtn.classList.toggle("audio-off", !uiSettings.soundEnabled);
+        els.audioBtn.textContent = uiSettings.soundEnabled ? "🔊" : "🔇";
+      }
     }
 
     function loadUiSettings() {
