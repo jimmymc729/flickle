@@ -4269,6 +4269,31 @@
       return unique;
     }
 
+    function getRevealedCastKeysFromGuesses() {
+      const revealed = new Set();
+      if (!answer || !Array.isArray(answer.cast) || !Array.isArray(state.guesses)) return revealed;
+      for (const guess of state.guesses) {
+        if (!guess || !Array.isArray(guess.cast)) continue;
+        const castMatch = compareCastMatches(guess.cast, answer.cast);
+        if (!castMatch || !Array.isArray(castMatch.matches)) continue;
+        for (const name of castMatch.matches) {
+          const key = normalize(name);
+          if (key) revealed.add(key);
+        }
+      }
+      return revealed;
+    }
+
+    function getAlreadyRevealedCastKeys() {
+      const revealed = getRevealedCastKeysFromGuesses();
+      const hinted = Array.isArray(state.revealedHintCast) ? state.revealedHintCast : [];
+      for (const name of hinted) {
+        const key = normalize(name);
+        if (key) revealed.add(key);
+      }
+      return revealed;
+    }
+
     function buyHint() {
       if (!state.started || state.finished) return;
       if (state.hintsUsed >= HINTS_MAX_PER_GAME) {
@@ -4289,7 +4314,7 @@
         playUiSound("error");
         return;
       }
-      const shownKeys = new Set((Array.isArray(state.revealedHintCast) ? state.revealedHintCast : []).map((name) => normalize(name)));
+      const shownKeys = getAlreadyRevealedCastKeys();
       const nextHint = hintPool.find((name) => !shownKeys.has(normalize(name)));
       if (!nextHint) {
         setStatus("All available cast hints are already revealed.", "complete");
@@ -4325,7 +4350,7 @@
       const hintsUsed = Math.max(0, Math.min(HINTS_MAX_PER_GAME, Number(state.hintsUsed) || 0));
       const hintsLeft = Math.max(0, HINTS_MAX_PER_GAME - hintsUsed);
       const hintPool = getHintCastPool();
-      const shownKeys = new Set((Array.isArray(state.revealedHintCast) ? state.revealedHintCast : []).map((name) => normalize(name)));
+      const shownKeys = getAlreadyRevealedCastKeys();
       const hasUnrevealedCastHint = hintPool.some((name) => !shownKeys.has(normalize(name)));
       const canBuy = state.started && !state.finished && hintsLeft > 0 && points >= HINT_POINT_COST && hasUnrevealedCastHint;
       const progressNow = Math.max(0, Math.min(HINT_POINT_COST, points));
@@ -5591,20 +5616,10 @@
     function buildShareText() {
       const safeGuesses = sanitizeStateGuesses();
       const score = state.won ? state.guesses.length : "X";
-      const modeTag = customMode
-        ? " [custom]"
-        : gameMode === "jam"
-          ? " [practice]"
-          : gameMode === "rewind"
-            ? " [rewind]"
-            : "";
-      const categoryEmojis = ["🗓️", "⏱️", "🔤", "🎭", "🎬", "👥", "🏢", "🔞", "💰", "🌍", "🗣️", "🔁"];
-      const lines = [`🎬 Flickle${modeTag} ${puzzleKey} ${score}/${MAX_GUESSES}`];
-      if (!customMode) {
-        const stats = loadStats();
-        lines.push(`🔥 Streak: ${stats.currentStreak}`);
-      }
-      const guessRows = [];
+      const numericScore = state.won ? state.guesses.length : MAX_GUESSES;
+      const lines = [`🎬 Flickle ${puzzleKey}`];
+      lines.push(`${score}/${MAX_GUESSES} — Rank: ${getFlickleRank(numericScore, state.won)}`);
+      const progressTokens = [];
       for (const guess of safeGuesses) {
         try {
           const rowStates = [
@@ -5621,20 +5636,56 @@
             compareLanguage(guess, answer).state,
             compareFranchise(guess.franchise, answer.franchise).state
           ];
-          guessRows.push(rowStates.map((s) => s === "hit" ? "🟩" : s === "near" ? "🟨" : "⬛"));
+          const solved = normalize(guess.title) === normalize(answer.title);
+          progressTokens.push(getProgressTokenFromStates(rowStates, solved));
         } catch (error) {
-          console.warn("Skipping invalid share row due to data error:", error, guess);
+          console.warn("Skipping invalid share progress row due to data error:", error, guess);
         }
       }
-      if (guessRows.length > 0) {
-        for (let col = 0; col < categoryEmojis.length; col += 1) {
-          const symbols = guessRows.map((row) => row[col] || "⬛").join("");
-          lines.push(`${categoryEmojis[col]} ${symbols}`);
-        }
+      while (progressTokens.length < MAX_GUESSES) {
+        progressTokens.push("⬜");
       }
       lines.push("");
-      lines.push("Play: https://flickle.io");
+      lines.push(progressTokens.join(""));
+      lines.push("");
+      lines.push("Play:");
+      lines.push("https://flickle.io");
       return lines.join("\n");
+    }
+
+    function getProgressTokenFromStates(states, solved) {
+      if (solved) return "✅";
+      const safeStates = Array.isArray(states) ? states : [];
+      const maxPoints = safeStates.length * HINT_POINTS_HIT;
+      if (maxPoints <= 0) return "⬛";
+
+      let points = 0;
+      for (const stateValue of safeStates) {
+        if (stateValue === "hit") points += HINT_POINTS_HIT;
+        else if (stateValue === "near") points += HINT_POINTS_NEAR;
+      }
+      const ratio = points / maxPoints;
+      if (ratio >= 0.7) return "🟩";
+      if (ratio >= 0.4) return "🟨";
+      return "⬛";
+    }
+
+    function getFlickleRank(score, won = true) {
+      if (!won) return "Lost in the Lobby";
+      switch (Number(score)) {
+        case 1: return "Lifetime Achievement Award";
+        case 2: return "Oscar Lock";
+        case 3: return "Box Office Legend";
+        case 4: return "Leading Actor";
+        case 5: return "Scene Stealer";
+        case 6: return "Critics' Choice";
+        case 7: return "Certified Fresh";
+        case 8: return "Supporting Role";
+        case 9: return "Background Extra";
+        case 10:
+        default:
+          return "End Credits Only";
+      }
     }
 
     function sanitizeStateGuesses() {
