@@ -5198,7 +5198,8 @@
       els.sharePreviewText.textContent = text;
 
       const lines = text.split("\n");
-      els.sharePreviewTitle.textContent = lines[0] || "Flickle";
+      const previewTitle = (lines[0] || "Flickle").replace("#Flickle", "Flickle");
+      els.sharePreviewTitle.textContent = previewTitle;
     }
 
     function buildCompletionStatusMessage() {
@@ -5426,8 +5427,10 @@
         `Played: ${stats.played}`,
         `Wins: ${stats.wins}`,
         `Win rate: ${winRate}%`,
-        `Current streak: ${stats.currentStreak}`,
-        `Best streak: ${stats.bestStreak}`,
+        `Daily streak: ${stats.dailyStreak}`,
+        `Best daily streak: ${stats.bestDailyStreak}`,
+        `Win streak: ${stats.winStreak}`,
+        `Best win streak: ${stats.bestWinStreak}`,
         `Best solve: ${stats.bestGuess ?? "-"} guesses`
       ];
       showModal(title, lines.join("\n"));
@@ -5566,22 +5569,38 @@
       const defaults = {
         played: 0,
         wins: 0,
-        currentStreak: 0,
-        bestStreak: 0,
+        dailyStreak: 0,
+        bestDailyStreak: 0,
+        winStreak: 0,
+        bestWinStreak: 0,
         bestGuess: null,
-        lastSolvedKey: null
+        lastSolvedKey: null,
+        lastDailyPlayedKey: null,
+        lastDailyWinKey: null
       };
       const raw = storageGet(STATS_KEY);
       if (!raw) return { ...defaults };
       try {
         const parsed = JSON.parse(raw);
+        const fallbackWinStreak = Number.isFinite(parsed.currentStreak) ? parsed.currentStreak : 0;
+        const fallbackBestWinStreak = Number.isFinite(parsed.bestStreak) ? parsed.bestStreak : 0;
         return {
           played: Number.isFinite(parsed.played) ? parsed.played : 0,
           wins: Number.isFinite(parsed.wins) ? parsed.wins : 0,
-          currentStreak: Number.isFinite(parsed.currentStreak) ? parsed.currentStreak : 0,
-          bestStreak: Number.isFinite(parsed.bestStreak) ? parsed.bestStreak : 0,
+          dailyStreak: Number.isFinite(parsed.dailyStreak)
+            ? parsed.dailyStreak
+            : (Number.isFinite(parsed.dailyPlayStreak) ? parsed.dailyPlayStreak : 0),
+          bestDailyStreak: Number.isFinite(parsed.bestDailyStreak)
+            ? parsed.bestDailyStreak
+            : (Number.isFinite(parsed.bestDailyPlayStreak) ? parsed.bestDailyPlayStreak : 0),
+          winStreak: Number.isFinite(parsed.winStreak) ? parsed.winStreak : fallbackWinStreak,
+          bestWinStreak: Number.isFinite(parsed.bestWinStreak) ? parsed.bestWinStreak : fallbackBestWinStreak,
           bestGuess: Number.isFinite(parsed.bestGuess) ? parsed.bestGuess : null,
-          lastSolvedKey: typeof parsed.lastSolvedKey === "string" ? parsed.lastSolvedKey : null
+          lastSolvedKey: typeof parsed.lastSolvedKey === "string" ? parsed.lastSolvedKey : null,
+          lastDailyPlayedKey: typeof parsed.lastDailyPlayedKey === "string" ? parsed.lastDailyPlayedKey : null,
+          lastDailyWinKey: typeof parsed.lastDailyWinKey === "string"
+            ? parsed.lastDailyWinKey
+            : (typeof parsed.lastSolvedKey === "string" ? parsed.lastSolvedKey : null)
         };
       } catch {
         storageRemove(STATS_KEY);
@@ -5597,28 +5616,60 @@
       if (customMode) return;
       const stats = loadStats();
       stats.played += 1;
+      if (gameMode === "daily" && stats.lastDailyPlayedKey !== puzzleKey) {
+        stats.dailyStreak = isPreviousDayKey(stats.lastDailyPlayedKey, puzzleKey)
+          ? stats.dailyStreak + 1
+          : 1;
+        stats.lastDailyPlayedKey = puzzleKey;
+      }
       if (state.won) {
         stats.wins += 1;
-        if (stats.lastSolvedKey !== puzzleKey) {
-          stats.currentStreak += 1;
+        if (gameMode === "daily" && stats.lastDailyWinKey !== puzzleKey) {
+          stats.winStreak = isPreviousDayKey(stats.lastDailyWinKey, puzzleKey)
+            ? stats.winStreak + 1
+            : 1;
+          stats.lastDailyWinKey = puzzleKey;
         }
         stats.lastSolvedKey = puzzleKey;
         if (stats.bestGuess === null || state.guesses.length < stats.bestGuess) {
           stats.bestGuess = state.guesses.length;
         }
-      } else {
-        stats.currentStreak = 0;
+      } else if (gameMode === "daily") {
+        stats.winStreak = 0;
       }
-      stats.bestStreak = Math.max(stats.bestStreak, stats.currentStreak);
+      stats.bestDailyStreak = Math.max(stats.bestDailyStreak, stats.dailyStreak);
+      stats.bestWinStreak = Math.max(stats.bestWinStreak, stats.winStreak);
       persistStats(stats);
+    }
+
+    function isPreviousDayKey(previousKey, currentKey) {
+      if (typeof previousKey !== "string" || typeof currentKey !== "string") return false;
+      const prev = dateFromPuzzleKey(previousKey);
+      const curr = dateFromPuzzleKey(currentKey);
+      if (!prev || !curr) return false;
+      return (curr.getTime() - prev.getTime()) === 24 * 60 * 60 * 1000;
+    }
+
+    function dateFromPuzzleKey(key) {
+      if (typeof key !== "string") return null;
+      const match = key.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return null;
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
     function buildShareText() {
       const safeGuesses = sanitizeStateGuesses();
       const score = state.won ? state.guesses.length : "X";
       const numericScore = state.won ? state.guesses.length : MAX_GUESSES;
-      const lines = [`🎬 Flickle ${puzzleKey}`];
+      const stats = loadStats();
+      const lines = [`🎬 #Flickle ${puzzleKey}`];
       lines.push(`${score}/${MAX_GUESSES} — Rank: ${getFlickleRank(numericScore, state.won)}`);
+      lines.push(`🔥 Daily Streak: ${stats.dailyStreak}`);
+      lines.push(`🏆 Win Streak: ${stats.winStreak}`);
       const progressTokens = [];
       for (const guess of safeGuesses) {
         try {
