@@ -5157,11 +5157,13 @@
     };
 
     const movieByNormTitle = new Map();
+    const movieByIdentity = new Map();
     const moviesByNormTitle = new Map();
     const moviesByCompactNormTitle = new Map();
     for (const m of MOVIES) {
       const key = normalize(m.title);
       const compactKey = normalizeCompact(m.title);
+      const identityKey = movieIdentityKey(m);
       if (!moviesByNormTitle.has(key)) moviesByNormTitle.set(key, []);
       moviesByNormTitle.get(key).push(m);
       if (compactKey) {
@@ -5169,6 +5171,7 @@
         moviesByCompactNormTitle.get(compactKey).push(m);
       }
       if (!movieByNormTitle.has(key)) movieByNormTitle.set(key, m);
+      if (identityKey && !movieByIdentity.has(identityKey)) movieByIdentity.set(identityKey, m);
     }
     const DATA_AUDIT = validateDataset(MOVIES, OSCAR_NOMS_BY_TITLE);
     const thumbCache = loadThumbCache();
@@ -5209,7 +5212,7 @@
     const today = new Date();
     const puzzleDate = buildPuzzleDate(today, gameMode === "rewind" ? rewindOffset : 0);
     const puzzleKey = customMode
-      ? `custom-${hash(normalize(customMovie.title))}`
+      ? `custom-${hash(movieIdentityKey(customMovie) || normalize(customMovie.title))}`
       : gameMode === "jam"
         ? `jam-${jamSeed}`
         : formatPuzzleKey(puzzleDate);
@@ -5566,7 +5569,7 @@
         return;
       }
 
-      if (state.guesses.some((g) => normalize(g.title) === normalize(guessMovie.title))) {
+      if (state.guesses.some((g) => moviesMatchByIdentity(g, guessMovie))) {
         hideStatusSuggestions();
         setStatus("You already guessed that title.", "error");
         playUiSound("error");
@@ -5590,7 +5593,7 @@
         hint_points_total: state.hintPoints
       });
 
-      if (normalize(guessMovie.title) === normalize(answer.title)) {
+      if (moviesMatchByIdentity(guessMovie, answer)) {
         state.finished = true;
         state.won = true;
         state.winCelebrating = true;
@@ -6412,7 +6415,7 @@
         ensureLanguageDataForMovie(guess);
 
         if (isLatest) {
-          const animateWinningCard = isWinRevealHoldActive() && normalize(guess.title) === normalize(answer.title);
+          const animateWinningCard = isWinRevealHoldActive() && moviesMatchByIdentity(guess, answer);
           const tiles = Array.from(card.querySelectorAll(".tile"));
           const tilesToAnimate = animateWinningCard
             ? tiles
@@ -7997,7 +8000,10 @@
     function persistState() {
       const payload = {
         started: state.started,
-        guesses: state.guesses.map((g) => g.title),
+        guesses: state.guesses.map((g) => ({
+          title: g.title,
+          year: Number.isFinite(g.year) ? g.year : null
+        })),
         finished: state.finished,
         won: state.won,
         message: state.message,
@@ -8029,15 +8035,7 @@
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed.guesses)) return;
         state.started = Boolean(parsed.started);
-        state.guesses = parsed.guesses.map((item) => {
-          if (typeof item === "string") {
-            return movieByNormTitle.get(normalize(item));
-          }
-          if (item && typeof item === "object" && typeof item.title === "string") {
-            return movieByNormTitle.get(normalize(item.title));
-          }
-          return null;
-        }).filter(Boolean);
+        state.guesses = parsed.guesses.map(resolveMovieReference).filter(Boolean);
         state.finished = Boolean(parsed.finished);
         state.won = Boolean(parsed.won);
         state.message = typeof parsed.message === "string" ? parsed.message : "";
@@ -8053,7 +8051,7 @@
         // Backward compatibility for older saves that did not persist `won`
         // reliably: if a finished game contains the answer in guesses, treat it as solved.
         if (state.finished && !state.won) {
-          const guessedAnswer = state.guesses.some((movie) => normalize(movie.title) === normalize(answer.title));
+          const guessedAnswer = state.guesses.some((movie) => moviesMatchByIdentity(movie, answer));
           if (guessedAnswer) state.won = true;
         }
       } catch {
@@ -8247,7 +8245,7 @@
         `Missing Oscar noms: ${DATA_AUDIT.missingOscarCount}`,
         `Missing studio: ${DATA_AUDIT.missingStudioCount}`,
         `Missing box office: ${DATA_AUDIT.missingBoxOfficeCount}`,
-        `Duplicate titles: ${DATA_AUDIT.duplicateCount}`,
+        `Duplicate title/year entries: ${DATA_AUDIT.duplicateCount}`,
         `Field issues: ${DATA_AUDIT.fieldIssueCount}`,
         "",
         DATA_AUDIT.issues.length ? "Sample issues:" : "No issues found.",
@@ -8492,7 +8490,7 @@
             compareLanguage(guess, answer).state,
             compareFranchise(guess.franchise, answer.franchise).state
           ];
-          const solved = normalize(guess.title) === normalize(answer.title);
+          const solved = moviesMatchByIdentity(guess, answer);
           progressTokens.push(getProgressTokenFromStates(rowStates, solved));
         } catch (error) {
           console.warn("Skipping invalid share progress row due to data error:", error, guess);
@@ -8544,16 +8542,43 @@
       }
     }
 
+    function movieIdentityKey(movie) {
+      if (!movie || typeof movie !== "object") return "";
+      const titleKey = normalize(movie.title);
+      const year = Number(movie.year);
+      if (!titleKey || !Number.isFinite(year)) return "";
+      return `${titleKey}|${year}`;
+    }
+
+    function moviesMatchByIdentity(left, right) {
+      const leftKey = movieIdentityKey(left);
+      const rightKey = movieIdentityKey(right);
+      return Boolean(leftKey && rightKey && leftKey === rightKey);
+    }
+
+    function resolveMovieReference(value) {
+      if (!value) return null;
+      if (value && typeof value === "object" && typeof value.title === "string") {
+        const fromIdentity = movieByIdentity.get(movieIdentityKey(value));
+        if (fromIdentity) return fromIdentity;
+        return movieByNormTitle.get(normalize(value.title)) || null;
+      }
+      if (typeof value === "string") {
+        const byInput = findMovieByInput(value);
+        if (byInput) return byInput;
+        return movieByNormTitle.get(normalize(value)) || null;
+      }
+      if (value && typeof value === "object" && typeof value.name === "string") {
+        const byInput = findMovieByInput(value.name);
+        if (byInput) return byInput;
+        return movieByNormTitle.get(normalize(value.name)) || null;
+      }
+      return null;
+    }
+
     function sanitizeStateGuesses() {
       const safeGuesses = state.guesses
-        .map((guess) => {
-          if (guess && typeof guess === "object" && typeof guess.title === "string") return guess;
-          if (typeof guess === "string") return movieByNormTitle.get(normalize(guess)) || null;
-          if (guess && typeof guess === "object" && typeof guess.name === "string") {
-            return movieByNormTitle.get(normalize(guess.name)) || null;
-          }
-          return null;
-        })
+        .map(resolveMovieReference)
         .filter((guess) => guess && typeof guess.title === "string");
       if (safeGuesses.length !== state.guesses.length) {
         state.guesses = safeGuesses;
@@ -8628,7 +8653,7 @@
     }
 
     function movieCacheKey(movie) {
-      return `${normalize(movie.title)}-${movie.year}`;
+      return movieIdentityKey(movie) || `${normalize(movie.title)}-${movie.year}`;
     }
 
     async function fetchPosterForMovie(movie, size = "thumb") {
@@ -8837,13 +8862,16 @@
     function parseCustomMovieFromUrl() {
       const token = urlParams.get("custom");
       if (!token) return null;
-      const title = decodeCustomToken(token);
-      if (!title) return null;
-      return movieByNormTitle.get(normalize(title)) || null;
+      const decodedValue = decodeCustomToken(token);
+      if (!decodedValue) return null;
+      const byInput = findMovieByInput(decodedValue);
+      if (byInput) return byInput;
+      // Backward compatibility for older custom links that only encoded the title.
+      return movieByNormTitle.get(normalize(decodedValue)) || null;
     }
 
     function buildCustomChallengeUrl(movie) {
-      const token = encodeCustomToken(movie.title);
+      const token = encodeCustomToken(buildMovieChoiceLabel(movie));
       const base = location.href.split("?")[0].split("#")[0];
       return `${base}?custom=${encodeURIComponent(token)}`;
     }
@@ -8922,10 +8950,10 @@
       let fieldIssueCount = 0;
 
       for (const movie of movies) {
-        const key = normalize(movie.title);
+        const key = movieIdentityKey(movie) || normalize(movie.title);
         if (seen.has(key)) {
           duplicateCount += 1;
-          issues.push(`Duplicate title: ${movie.title}`);
+          issues.push(`Duplicate title/year: ${movie.title} (${movie.year})`);
           continue;
         }
         seen.add(key);
