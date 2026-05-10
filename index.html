@@ -3,6 +3,7 @@
 <head>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-1B0MHEC0F9"></script>
+  <script src="flickle-facts-data.js"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
@@ -5090,6 +5091,12 @@
         "Its practical effects and sharp pacing helped it age into one of the most rewatchable adventure comedies ever made."
       ]
     };
+    const CURATED_FACTS_BY_TITLE = (typeof window !== "undefined"
+      && window.FLICKLE_CURATED_FACTS
+      && typeof window.FLICKLE_CURATED_FACTS === "object")
+      ? window.FLICKLE_CURATED_FACTS
+      : {};
+    let curatedFactsByNormalizedTitle = null;
     const MAINSTREAM_FACT_RANK_LIMIT = 300;
 
     const els = {
@@ -5876,13 +5883,54 @@
       playUiSound("toggle-on");
     }
 
-    function buildFlickleFact(movie) {
-      const mapped = FLICKLE_FACTS_BY_TITLE[movie.title];
-      if (Array.isArray(mapped) && mapped.length > 0) {
-        return mapped.filter((line) => typeof line === "string" && line.trim().length > 0);
+    function normalizeFactList(value) {
+      if (Array.isArray(value)) {
+        return value
+          .map((line) => String(line || "").trim())
+          .filter(Boolean);
       }
-      if (typeof mapped === "string" && mapped.trim()) {
-        return [mapped.trim()];
+      if (typeof value === "string" && value.trim()) {
+        return [value.trim()];
+      }
+      return [];
+    }
+
+    function getCuratedFactsForTitle(title) {
+      const rawTitle = String(title || "").trim();
+      if (!rawTitle) return [];
+
+      const directCurated = normalizeFactList(CURATED_FACTS_BY_TITLE[rawTitle]);
+      if (directCurated.length > 0) return directCurated;
+
+      const directLegacy = normalizeFactList(FLICKLE_FACTS_BY_TITLE[rawTitle]);
+      if (directLegacy.length > 0) return directLegacy;
+
+      const normalizedTitle = normalize(rawTitle);
+      if (!normalizedTitle) return [];
+
+      if (!curatedFactsByNormalizedTitle) {
+        curatedFactsByNormalizedTitle = new Map();
+        const appendFacts = (source) => {
+          if (!source || typeof source !== "object") return;
+          for (const [sourceTitle, sourceFacts] of Object.entries(source)) {
+            const key = normalize(sourceTitle);
+            if (!key || curatedFactsByNormalizedTitle.has(key)) continue;
+            const normalizedFacts = normalizeFactList(sourceFacts);
+            if (normalizedFacts.length === 0) continue;
+            curatedFactsByNormalizedTitle.set(key, normalizedFacts);
+          }
+        };
+        appendFacts(CURATED_FACTS_BY_TITLE);
+        appendFacts(FLICKLE_FACTS_BY_TITLE);
+      }
+
+      return curatedFactsByNormalizedTitle.get(normalizedTitle) || [];
+    }
+
+    function buildFlickleFact(movie) {
+      const curatedFacts = getCuratedFactsForTitle(movie && movie.title);
+      if (curatedFacts.length > 0) {
+        return curatedFacts;
       }
 
       const factBank = getMovieFactBank();
