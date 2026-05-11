@@ -858,6 +858,32 @@
       padding: 7px 8px;
       text-align: left;
     }
+    .hint-panel--clapper {
+      position: relative;
+      overflow: hidden;
+    }
+    .hint-panel--clapper::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 10px;
+      right: 10px;
+      height: 9px;
+      border-radius: 8px 8px 4px 4px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+        repeating-linear-gradient(
+          -34deg,
+          rgba(241, 245, 255, 0.23) 0 9px,
+          rgba(67, 76, 104, 0.22) 9px 18px
+        );
+      opacity: 0.26;
+      pointer-events: none;
+    }
+    .hint-panel--clapper .hint-head {
+      padding-top: 5px;
+      border-top: 1px solid rgba(220, 228, 255, 0.16);
+    }
 
     .hint-head {
       display: flex;
@@ -873,6 +899,17 @@
       text-transform: uppercase;
       color: #c0cae1;
       font-weight: 700;
+    }
+    .hint-subtitle {
+      margin: -2px 0 6px;
+      font-size: 0.67rem;
+      letter-spacing: 0.2px;
+      color: #97a4c4;
+      line-height: 1.25;
+      opacity: 0.9;
+    }
+    .hint-panel.hint-ready-copy-muted .hint-subtitle {
+      opacity: 0.56;
     }
 
     .hint-buy-wrap {
@@ -903,42 +940,80 @@
       filter: grayscale(0.15);
     }
     .hint-buy.ready {
-      border-color: rgba(176, 151, 255, 0.76);
-      background: linear-gradient(180deg, #4745a8, #3b378f);
-      color: #f3efff;
-      box-shadow: 0 0 0 1px rgba(166, 139, 255, 0.42), 0 0 16px rgba(116, 89, 255, 0.5);
-      animation: hint-buy-glow 1.9s ease-in-out infinite;
+      border-color: rgba(197, 176, 255, 0.94);
+      background: linear-gradient(180deg, #5a58c4, #4641ad);
+      color: #fbf8ff;
+      box-shadow:
+        0 0 0 1px rgba(189, 165, 255, 0.64),
+        0 0 24px rgba(125, 96, 255, 0.68),
+        0 0 44px rgba(125, 96, 255, 0.34);
+      animation: hint-buy-glow 1.65s ease-in-out infinite;
     }
     @keyframes hint-buy-glow {
       0% {
-        box-shadow: 0 0 0 1px rgba(166, 139, 255, 0.34), 0 0 9px rgba(116, 89, 255, 0.32);
+        box-shadow:
+          0 0 0 1px rgba(176, 152, 255, 0.46),
+          0 0 14px rgba(116, 89, 255, 0.44),
+          0 0 28px rgba(116, 89, 255, 0.2);
       }
       50% {
-        box-shadow: 0 0 0 1px rgba(186, 158, 255, 0.68), 0 0 21px rgba(136, 102, 255, 0.76);
+        box-shadow:
+          0 0 0 1px rgba(209, 186, 255, 0.94),
+          0 0 30px rgba(148, 112, 255, 0.96),
+          0 0 56px rgba(148, 112, 255, 0.58);
       }
       100% {
-        box-shadow: 0 0 0 1px rgba(166, 139, 255, 0.34), 0 0 9px rgba(116, 89, 255, 0.32);
+        box-shadow:
+          0 0 0 1px rgba(176, 152, 255, 0.46),
+          0 0 14px rgba(116, 89, 255, 0.44),
+          0 0 28px rgba(116, 89, 255, 0.2);
       }
     }
     .hint-progress {
       position: relative;
       width: 100%;
-      height: 7px;
+      height: 9px;
       border-radius: 999px;
       overflow: hidden;
-      background: rgba(120, 134, 173, 0.24);
+      background:
+        linear-gradient(180deg, rgba(80, 91, 124, 0.28), rgba(53, 61, 88, 0.22)),
+        repeating-linear-gradient(
+          -34deg,
+          rgba(206, 218, 250, 0.11) 0 8px,
+          rgba(37, 46, 73, 0.2) 8px 16px
+        );
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.38);
       margin: 0 0 6px;
     }
     .hint-progress-fill {
+      position: relative;
       display: block;
       width: 0%;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, #f1c94d 0%, #9dd35a 55%, #6ad06d 100%);
+      background:
+        repeating-linear-gradient(
+          -34deg,
+          rgba(245, 250, 255, 0.34) 0 8px,
+          rgba(245, 250, 255, 0.08) 8px 16px
+        ),
+        linear-gradient(90deg, #f1c94d 0%, #9dd35a 55%, #6ad06d 100%);
       box-shadow: 0 0 10px rgba(142, 219, 106, 0.28);
       transition: width 360ms cubic-bezier(0.2, 0.72, 0.2, 1), filter 180ms ease, box-shadow 180ms ease;
+    }
+    .hint-progress-fill::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      width: 8px;
+      height: 74%;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.36);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.26);
+      pointer-events: none;
     }
     .hint-progress.ready .hint-progress-fill {
       filter: saturate(1.08) brightness(1.03);
@@ -947,9 +1022,39 @@
     .hint-progress.collecting .hint-progress-fill {
       animation: hint-progress-collect 340ms ease;
     }
+    .hint-panel.hint-ready-flash {
+      animation: hint-ready-panel-flash 760ms cubic-bezier(0.2, 0.72, 0.2, 1);
+    }
+    .hint-progress.hint-ready-flash {
+      animation: hint-ready-track-flash 620ms ease;
+    }
+    .hint-progress.hint-ready-flash .hint-progress-fill {
+      animation: hint-ready-fill-flash 620ms ease;
+    }
     @keyframes hint-progress-collect {
       0% { filter: brightness(1) saturate(1); }
       45% { filter: brightness(1.24) saturate(1.16); }
+      100% { filter: brightness(1) saturate(1); }
+    }
+    @keyframes hint-ready-panel-flash {
+      0% {
+        box-shadow: 0 0 0 0 rgba(176, 151, 255, 0), 0 0 0 0 rgba(122, 207, 122, 0);
+      }
+      45% {
+        box-shadow: 0 0 0 1px rgba(176, 151, 255, 0.48), 0 0 20px rgba(122, 207, 122, 0.26);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(176, 151, 255, 0), 0 0 0 0 rgba(122, 207, 122, 0);
+      }
+    }
+    @keyframes hint-ready-track-flash {
+      0% { filter: brightness(1) saturate(1); }
+      45% { filter: brightness(1.18) saturate(1.2); }
+      100% { filter: brightness(1) saturate(1); }
+    }
+    @keyframes hint-ready-fill-flash {
+      0% { filter: brightness(1) saturate(1); }
+      35% { filter: brightness(1.24) saturate(1.18); }
       100% { filter: brightness(1) saturate(1); }
     }
     .point-fly-layer {
@@ -2003,6 +2108,7 @@
                 <button id="hint-buy-btn" class="hint-buy" type="button">Buy Hint (50)</button>
               </div>
             </div>
+            <div class="hint-subtitle">Earn 50 pts to unlock a hint.</div>
             <div class="hint-progress" id="hint-progress" role="progressbar" aria-label="Hint progress" aria-valuemin="0" aria-valuemax="50" aria-valuenow="0">
               <span class="hint-progress-fill" id="hint-progress-fill"></span>
             </div>
@@ -2104,7 +2210,7 @@
     const PRACTICE_LAST_SEED_KEY = "flickle-practice-last-seed";
     const PRACTICE_IN_PROGRESS_KEY = "flickle-practice-in-progress";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
-    const UI_SOUND_TYPES = Object.freeze(["start", "guess", "share", "win", "lose", "error", "toggle-on"]);
+    const UI_SOUND_TYPES = Object.freeze(["start", "guess", "share", "win", "lose", "error", "toggle-on", "hint-ready"]);
     const storageFallback = {};
     const FAMILIAR_CAST_NAMES = [
       "Tom Hanks", "Leonardo DiCaprio", "Brad Pitt", "Morgan Freeman", "Robert De Niro",
@@ -5263,6 +5369,11 @@
     let lastPointFxGuessCount = 0;
     let pointFlyLayerEl = null;
     let pointFlyCollectPulseTimer = null;
+    let hintReadyFlashTimer = null;
+    let hintReadyWasBuyable = false;
+    let hintReadyTrackerPrimed = false;
+    let hintUnlockingInProgress = false;
+    let hintUnlockTimer = null;
     let pendingHintRevealKey = "";
     let typeaheadOptions = [];
     let activeTypeaheadIndex = -1;
@@ -6525,6 +6636,36 @@
       }, 360);
     }
 
+    function triggerHintReadyFx() {
+      if (els.hintPanel) {
+        els.hintPanel.classList.remove("hint-ready-flash");
+      }
+      if (els.hintProgress) {
+        els.hintProgress.classList.remove("hint-ready-flash");
+      }
+      if (hintReadyFlashTimer) {
+        window.clearTimeout(hintReadyFlashTimer);
+        hintReadyFlashTimer = null;
+      }
+
+      if (els.hintPanel) void els.hintPanel.offsetWidth;
+      if (els.hintProgress) void els.hintProgress.offsetWidth;
+
+      if (els.hintPanel) {
+        els.hintPanel.classList.add("hint-ready-flash");
+      }
+      if (els.hintProgress) {
+        els.hintProgress.classList.add("hint-ready-flash");
+      }
+      hintReadyFlashTimer = window.setTimeout(() => {
+        hintReadyFlashTimer = null;
+        if (els.hintPanel) els.hintPanel.classList.remove("hint-ready-flash");
+        if (els.hintProgress) els.hintProgress.classList.remove("hint-ready-flash");
+      }, 780);
+
+      playUiSound("hint-ready");
+    }
+
     function playHintPointFlyFx(tilesToAnimate) {
       if (!Array.isArray(tilesToAnimate) || tilesToAnimate.length === 0) return;
       if (!els.hintProgress || els.hintPanel.classList.contains("hidden")) return;
@@ -6729,7 +6870,7 @@
     }
 
     function buyHint() {
-      if (!state.started || state.finished) return;
+      if (!state.started || state.finished || hintUnlockingInProgress) return;
       if (state.hintsUsed >= HINTS_MAX_PER_GAME) {
         setStatus("No hints left for this puzzle.", "error");
         playUiSound("error");
@@ -6755,30 +6896,42 @@
         playUiSound("toggle-on");
         return;
       }
-
-      state.hintPoints -= HINT_POINT_COST;
-      state.hintsUsed += 1;
-      if (!Array.isArray(state.revealedHintCast)) state.revealedHintCast = [];
-      state.revealedHintCast.push(nextHint);
-      pendingHintRevealKey = normalize(nextHint);
-      state.message = `Hint unlocked: ${nextHint}.`;
-      trackAnalyticsEvent("hint_bought", {
-        game_mode: gameMode,
-        custom_mode: customMode ? "yes" : "no",
-        puzzle_key: puzzleKey,
-        hints_used: state.hintsUsed,
-        hint_points_remaining: state.hintPoints
-      });
-      renderAll();
-      persistState();
-      playUiSound("toggle-on");
+      hintUnlockingInProgress = true;
+      renderHintPanel();
+      if (hintUnlockTimer) {
+        window.clearTimeout(hintUnlockTimer);
+      }
+      hintUnlockTimer = window.setTimeout(() => {
+        hintUnlockTimer = null;
+        hintUnlockingInProgress = false;
+        state.hintPoints -= HINT_POINT_COST;
+        state.hintsUsed += 1;
+        if (!Array.isArray(state.revealedHintCast)) state.revealedHintCast = [];
+        state.revealedHintCast.push(nextHint);
+        pendingHintRevealKey = normalize(nextHint);
+        state.message = `Hint unlocked: ${nextHint}.`;
+        trackAnalyticsEvent("hint_bought", {
+          game_mode: gameMode,
+          custom_mode: customMode ? "yes" : "no",
+          puzzle_key: puzzleKey,
+          hints_used: state.hintsUsed,
+          hint_points_remaining: state.hintPoints
+        });
+        renderAll();
+        persistState();
+        playUiSound("toggle-on");
+      }, 260);
     }
 
     function renderHintPanel() {
       if (!els.hintPanel) return;
       const showHintPanel = state.started && !state.finished;
       els.hintPanel.classList.toggle("hidden", !showHintPanel);
-      if (!showHintPanel) return;
+      if (!showHintPanel) {
+        hintReadyTrackerPrimed = false;
+        hintReadyWasBuyable = false;
+        return;
+      }
 
       const points = Math.max(0, Number(state.hintPoints) || 0);
       const hintsUsed = Math.max(0, Math.min(HINTS_MAX_PER_GAME, Number(state.hintsUsed) || 0));
@@ -6789,6 +6942,13 @@
       const canBuy = state.started && !state.finished && hintsLeft > 0 && points >= HINT_POINT_COST && hasUnrevealedCastHint;
       const progressNow = Math.max(0, Math.min(HINT_POINT_COST, points));
       const progressPercent = HINT_POINT_COST > 0 ? (progressNow / HINT_POINT_COST) * 100 : 0;
+      els.hintPanel.classList.toggle("hint-ready-copy-muted", canBuy || hintUnlockingInProgress);
+      if (!hintReadyTrackerPrimed) {
+        hintReadyTrackerPrimed = true;
+      } else if (canBuy && !hintReadyWasBuyable) {
+        triggerHintReadyFx();
+      }
+      hintReadyWasBuyable = canBuy;
 
       if (els.hintProgress && els.hintProgressFill) {
         els.hintProgressFill.style.width = `${progressPercent}%`;
@@ -6797,10 +6957,17 @@
       }
 
       if (els.hintBuyBtn) {
-        els.hintBuyBtn.textContent = canBuy ? `Get Hint • ${points} pts` : `${points} pts`;
-        els.hintBuyBtn.disabled = !canBuy;
-        els.hintBuyBtn.classList.toggle("ready", canBuy);
-        els.hintBuyBtn.setAttribute("aria-label", canBuy ? `Get hint for 50 points. You have ${points} points.` : `${points} points`);
+        if (hintUnlockingInProgress) {
+          els.hintBuyBtn.textContent = "Unlocking...";
+          els.hintBuyBtn.disabled = true;
+          els.hintBuyBtn.classList.remove("ready");
+          els.hintBuyBtn.setAttribute("aria-label", "Unlocking hint");
+        } else {
+          els.hintBuyBtn.textContent = canBuy ? `Get Hint (${HINT_POINT_COST}) • ${points} pts` : `${points} pts`;
+          els.hintBuyBtn.disabled = !canBuy;
+          els.hintBuyBtn.classList.toggle("ready", canBuy);
+          els.hintBuyBtn.setAttribute("aria-label", canBuy ? `Get hint for ${HINT_POINT_COST} points. You have ${points} points.` : `${points} points`);
+        }
       }
 
       const hints = Array.isArray(state.revealedHintCast) ? state.revealedHintCast : [];
@@ -7988,6 +8155,13 @@
         if (kind === "toggle-on") {
           scheduleTone(ctx, { start: t, duration: 0.06, type: "sine", from: 560, to: 740, gain: 0.05 });
           scheduleTone(ctx, { start: t + 0.03, duration: 0.07, type: "triangle", from: 720, to: 980, gain: 0.04 });
+          return;
+        }
+        if (kind === "hint-ready") {
+          scheduleTone(ctx, { start: t, duration: 0.05, type: "triangle", from: 620, to: 820, gain: 0.045 });
+          scheduleTone(ctx, { start: t + 0.045, duration: 0.06, type: "sine", from: 860, to: 1160, gain: 0.052 });
+          schedulePopNoise(ctx, { start: t + 0.026, duration: 0.02, gain: 0.024, frequency: 1900, q: 1.3 });
+          return;
         }
       } catch {
         // Keep gameplay uninterrupted if audio scheduling fails.
