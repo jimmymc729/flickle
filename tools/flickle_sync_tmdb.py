@@ -192,6 +192,95 @@ def discover_candidates(
     return candidates
 
 
+def load_must_have(path: pathlib.Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid must-have JSON: {path} ({exc})") from exc
+
+    if not isinstance(raw, list):
+        raise RuntimeError(f"Must-have JSON must be an array: {path}")
+
+    out: list[dict[str, Any]] = []
+    for idx, item in enumerate(raw):
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title", "")).strip()
+        year = item.get("year")
+        tmdb_id = item.get("tmdbId")
+        if not title:
+            continue
+        parsed: dict[str, Any] = {"title": title}
+        if isinstance(year, int) and year > 1800:
+            parsed["year"] = year
+        if isinstance(tmdb_id, int) and tmdb_id > 0:
+            parsed["tmdbId"] = tmdb_id
+        if "year" not in parsed and "tmdbId" not in parsed:
+            print(f"Skipping must-have entry #{idx + 1} ({title!r}): missing year/tmdbId")
+            continue
+        out.append(parsed)
+    return out
+
+
+def resolve_must_have_id(api_key: str, language: str, entry: dict[str, Any]) -> int | None:
+    forced_id = entry.get("tmdbId")
+    if isinstance(forced_id, int) and forced_id > 0:
+        return forced_id
+
+    title = str(entry.get("title", "")).strip()
+    year = entry.get("year")
+    params: dict[str, Any] = {
+        "language": language,
+        "query": title,
+        "include_adult": "false",
+    }
+    if isinstance(year, int):
+        params["year"] = year
+
+    payload = tmdb_get("/search/movie", api_key, params=params)
+    results = payload.get("results") or []
+    if not results:
+        return None
+
+    if isinstance(year, int):
+        for movie in results:
+            if not isinstance(movie, dict):
+                continue
+            release_year = extract_year(str(movie.get("release_date", "")))
+            if release_year == year and isinstance(movie.get("id"), int):
+                return int(movie["id"])
+
+    for movie in results:
+        if isinstance(movie, dict) and isinstance(movie.get("id"), int):
+            return int(movie["id"])
+    return None
+
+
+def fetch_must_have_candidates(api_key: str, language: str, entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    seen_ids: set[int] = set()
+    for entry in entries:
+        movie_id: int | None = None
+        try:
+            movie_id = resolve_must_have_id(api_key, language, entry)
+        except RuntimeError as exc:
+            print(f"Must-have lookup failed for {entry.get('title')!r}: {exc}")
+            continue
+        if not isinstance(movie_id, int) or movie_id <= 0:
+            label = str(entry.get("title", "")).strip()
+            year = entry.get("year")
+            suffix = f" ({year})" if isinstance(year, int) else ""
+            print(f"Must-have lookup returned no result: {label}{suffix}")
+            continue
+        if movie_id in seen_ids:
+            continue
+        seen_ids.add(movie_id)
+        out.append({"id": movie_id})
+    return out
+
+
 def pick_country(detail: dict[str, Any]) -> str:
     countries = detail.get("production_countries") or []
     if countries:
@@ -456,6 +545,7 @@ def main() -> int:
     parser.add_argument("--output-json", default="flickle/data/flickle-movies.json", help="Where to write the synced dataset JSON")
     parser.add_argument("--update-html", default="", help="Optional path to flickle.html to replace const MOVIES block")
     parser.add_argument("--overrides", default="flickle/data/flickle-overrides.json", help="Optional JSON map of manual per-movie fixes")
+    parser.add_argument("--must-have", default="flickle/data/flickle-must-have.json", help="Optional JSON array of movie seeds to force-include")
     parser.add_argument("--sleep-ms", type=int, default=140, help="Delay between detail calls to avoid hammering TMDB")
     args = parser.parse_args()
 
@@ -465,6 +555,13 @@ def main() -> int:
 
     if args.pages < 1 or args.max_movies < 1:
         print("--pages and --max-movies must be >= 1", file=sys.stderr)
+        return 2
+
+    must_have_path = pathlib.Path(args.must_have)
+    try:
+        must_have_entries = load_must_have(must_have_path)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
         return 2
 
     overrides_path = pathlib.Path(args.overrides)
@@ -486,8 +583,22 @@ def main() -> int:
         print("No movies returned from TMDB discover.", file=sys.stderr)
         return 1
 
+    if must_have_entries:
+        must_have_candidates = fetch_must_have_candidates(args.api_key, args.language, must_have_entries)
+        if must_have_candidates:
+            seeded: list[dict[str, Any]] = []
+            seen_ids: set[int] = set()
+            for item in must_have_candidates + candidates:
+                movie_id = item.get("id")
+                if not isinstance(movie_id, int) or movie_id <= 0 or movie_id in seen_ids:
+                    continue
+                seen_ids.add(movie_id)
+                seeded.append(item)
+            candidates = seeded
+            print(f"Injected {len(must_have_candidates)} must-have seeds before discover list.")
+
     movies: list[dict[str, Any]] = []
-    seen_titles: set[str] = set()
+    seen_movies: set[str] = set()
     failures = 0
     for idx, candidate in enumerate(candidates, start=1):
         movie_id = candidate["id"]
@@ -506,10 +617,10 @@ def main() -> int:
         if not data:
             continue
         data = apply_overrides(data, overrides)
-        key = normalize(data["title"])
-        if key in seen_titles:
+        key = movie_override_key(str(data.get("title", "")), int(data.get("year", 0) or 0))
+        if key in seen_movies:
             continue
-        seen_titles.add(key)
+        seen_movies.add(key)
         movies.append(data)
         if len(movies) >= args.max_movies:
             break
