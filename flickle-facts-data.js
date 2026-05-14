@@ -1621,5 +1621,32 @@ window.FLICKLE_CURATED_FACTS = {
   ],
   "Ocean's Thirteen": [
     "The elaborate casino heist technology in the movie was inspired partly by real Las Vegas surveillance systems and casino psychology tactics designed to influence gambler behavior."
+  ],
+  "12 Angry Men": [
+    "Director Sidney Lumet gradually switched to longer camera lenses through the film to make the jury room feel increasingly claustrophobic."
+  ],
+  "Deadpool 2": [
+    "Brad Pitt makes a blink-and-you-miss-it cameo as the Vanisher for just a split second."
+  ],
+  "Furious 7": [
+    "After Paul Walker died during production, the film was reworked using his brothers and visual effects to complete key scenes."
+  ],
+  "Incredibles 2": [
+    "It arrived 14 years after the first movie, making it one of Pixar's longest waits between an original film and its direct sequel."
+  ],
+  "Me Before You": [
+    "The screenplay was adapted by Jojo Moyes from her own bestselling novel."
+  ],
+  "Mulan": [
+    "Ming-Na Wen voiced Mulan's dialogue while Lea Salonga provided Mulan's singing voice."
+  ],
+  "Point Break": [
+    "Keanu Reeves and Patrick Swayze trained with surfers and skydivers to ground the movie's action in real technique."
+  ],
+  "Send Help": [
+    "The film marked Sam Raimi's return to feature-film horror-thriller directing, with Rachel McAdams and Dylan O'Brien as stranded coworkers."
+  ],
+  "Southpaw": [
+    "The project was initially developed as a potential star vehicle for Eminem before being reworked and led by Jake Gyllenhaal."
   ]
 };

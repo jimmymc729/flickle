@@ -14,6 +14,7 @@ import json
 import os
 import pathlib
 import re
+import socket
 import sys
 import time
 import urllib.error
@@ -135,7 +136,7 @@ def tmdb_get(
             if exc.code not in (429, 500, 502, 503, 504) or attempt >= attempts:
                 raise RuntimeError(f"TMDB request failed [{exc.code}] for {path}: {detail[:220]}") from exc
             last_error = exc
-        except urllib.error.URLError as exc:
+        except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
             last_error = exc
             if attempt >= attempts:
                 break
