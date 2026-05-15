@@ -2222,7 +2222,7 @@
     const JAM_MIN_POPULARITY = 8;
     const UI_SETTINGS_KEY = "flickle-ui-settings";
     const STATS_KEY = "flickle-stats";
-    const THUMB_CACHE_KEY = "flickle-thumb-cache-v1";
+    const THUMB_CACHE_KEY = "flickle-thumb-cache-v2";
     const CAST_PORTRAIT_CACHE_KEY = "flickle-cast-portrait-cache-v1";
     const RATING_CACHE_KEY = "flickle-rating-cache-v1";
     const LANGUAGE_CACHE_KEY = "flickle-language-cache-v2";
@@ -11036,18 +11036,24 @@
         return;
       }
 
+      const { year: typedYear } = splitInputTitleAndYear(typed);
       const guessMovie = findMovieByInput(typed);
       if (!guessMovie) {
         const disambiguation = getTitleDisambiguationChoices(typed, 6);
         if (disambiguation.length) {
-          setStatus("Multiple versions found. Pick the title with a year:", "error");
+          if (typedYear !== null) {
+            setStatus("That year doesn't match this title. Try one of these versions:", "error");
+          } else {
+            setStatus("Multiple versions found. Pick the title with a year:", "error");
+          }
           showStatusSuggestions(disambiguation);
           trackAnalyticsEvent("guess_disambiguation_needed", {
             game_mode: gameMode,
             custom_mode: customMode ? "yes" : "no",
             puzzle_key: puzzleKey,
             input: typed.slice(0, 80),
-            suggestion_count: disambiguation.length
+            suggestion_count: disambiguation.length,
+            input_year: typedYear
           });
           playUiSound("error");
           return;
@@ -12553,6 +12559,25 @@
     }
 
     async function fetchRatingFromTmdb(movie, apiKey) {
+      const directTmdbId = getMovieTmdbId(movie);
+      if (directTmdbId !== null) {
+        const directUrl = `https://api.themoviedb.org/3/movie/${directTmdbId}/release_dates?api_key=${encodeURIComponent(apiKey)}`;
+        const directRes = await fetch(directUrl);
+        if (directRes.status !== 401 && directRes.status !== 403 && directRes.ok) {
+          const directPayload = await directRes.json();
+          const directEntries = Array.isArray(directPayload.results) ? directPayload.results : [];
+          const directUs = directEntries.find((entry) => normalize(entry.iso_3166_1) === "us");
+          const directUsDates = directUs && Array.isArray(directUs.release_dates) ? directUs.release_dates : [];
+          const directUsRating = directUsDates.find((entry) => normalizeRating(entry.certification));
+          if (directUsRating) return normalizeRating(directUsRating.certification);
+          for (const entry of directEntries) {
+            const releaseDates = Array.isArray(entry.release_dates) ? entry.release_dates : [];
+            const fallbackRating = releaseDates.find((item) => normalizeRating(item.certification));
+            if (fallbackRating) return normalizeRating(fallbackRating.certification);
+          }
+        }
+      }
+
       const query = encodeURIComponent(movie.title);
       const yearParam = Number.isFinite(movie.year) ? `&year=${movie.year}` : "";
       const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${query}${yearParam}&include_adult=false&page=1`;
@@ -12564,10 +12589,7 @@
       const results = Array.isArray(searchPayload.results) ? searchPayload.results : [];
       if (!results.length) return "";
 
-      const target = normalize(movie.title);
-      const best = results.find((item) => normalize(item.title || "") === target)
-        || results.find((item) => normalize(item.title || "").includes(target))
-        || results[0];
+      const best = pickBestTmdbMovieResult(results, movie);
       const movieId = best && Number.isFinite(best.id) ? best.id : null;
       if (!movieId) return "";
 
@@ -12648,6 +12670,16 @@
     }
 
     async function fetchLanguageFromTmdb(movie, apiKey) {
+      const directTmdbId = getMovieTmdbId(movie);
+      if (directTmdbId !== null) {
+        const directUrl = `https://api.themoviedb.org/3/movie/${directTmdbId}?api_key=${encodeURIComponent(apiKey)}`;
+        const directRes = await fetch(directUrl);
+        if (directRes.status !== 401 && directRes.status !== 403 && directRes.ok) {
+          const directDetail = await directRes.json();
+          return pickLanguageFromTmdbDetail(directDetail);
+        }
+      }
+
       const query = encodeURIComponent(movie.title);
       const yearParam = Number.isFinite(movie.year) ? `&year=${movie.year}` : "";
       const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${query}${yearParam}&include_adult=false&page=1`;
@@ -12659,10 +12691,7 @@
       const results = Array.isArray(searchPayload.results) ? searchPayload.results : [];
       if (!results.length) return "";
 
-      const target = normalize(movie.title);
-      const best = results.find((item) => normalize(item.title || "") === target)
-        || results.find((item) => normalize(item.title || "").includes(target))
-        || results[0];
+      const best = pickBestTmdbMovieResult(results, movie);
       const movieId = best && Number.isFinite(best.id) ? best.id : null;
       if (!movieId) return "";
 
@@ -13065,6 +13094,7 @@
         if (yearExact) return yearExact;
         const compactYearExact = compactTitleMatches.find((movie) => Number(movie.year) === year);
         if (compactYearExact) return compactYearExact;
+        return null;
       }
 
       if (exactTitleMatches.length === 1) return exactTitleMatches[0];
@@ -13126,19 +13156,19 @@
       const raw = String(input || "").trim();
       if (!raw) return [];
       const { titlePart, year } = splitInputTitleAndYear(raw);
-      if (year !== null) return [];
-
       const normTitle = normalize(titlePart || raw);
       const compactTitle = normalizeCompact(titlePart || raw);
       if (!normTitle) return [];
 
       const exactTitleMatches = moviesByNormTitle.get(normTitle) || [];
       const compactTitleMatches = compactTitle ? (moviesByCompactNormTitle.get(compactTitle) || []) : [];
-      const source = exactTitleMatches.length > 1
-        ? exactTitleMatches
-        : compactTitleMatches.length > 1
-          ? compactTitleMatches
-          : [];
+      const source = year !== null
+        ? (exactTitleMatches.length ? exactTitleMatches : compactTitleMatches)
+        : exactTitleMatches.length > 1
+          ? exactTitleMatches
+          : compactTitleMatches.length > 1
+            ? compactTitleMatches
+            : [];
       if (!source.length) return [];
 
       const sorted = [...source].sort((a, b) => {
@@ -14385,6 +14415,51 @@
       return movieIdentityKey(movie) || `${normalize(movie.title)}-${movie.year}`;
     }
 
+    function getMovieTmdbId(movie) {
+      const id = Number(movie && movie.tmdbId);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    }
+
+    function getTmdbResultYear(item) {
+      const rawDate = String((item && item.release_date) || "").trim();
+      if (!rawDate) return null;
+      const year = Number(rawDate.slice(0, 4));
+      return Number.isFinite(year) ? year : null;
+    }
+
+    function pickBestTmdbMovieResult(results, movie) {
+      const list = Array.isArray(results) ? results.filter(Boolean) : [];
+      if (!list.length || !movie || typeof movie !== "object") return null;
+
+      const targetTitle = normalize(movie.title);
+      const targetYear = Number.isFinite(Number(movie.year)) ? Number(movie.year) : null;
+      if (!targetTitle) return null;
+
+      const exactByYear = list.find((item) => {
+        const titleNorm = normalize(item.title || "");
+        const originalNorm = normalize(item.original_title || "");
+        if (titleNorm !== targetTitle && originalNorm !== targetTitle) return false;
+        if (targetYear === null) return true;
+        return getTmdbResultYear(item) === targetYear;
+      });
+      if (exactByYear) return exactByYear;
+
+      const exactTitle = list.find((item) => {
+        const titleNorm = normalize(item.title || "");
+        const originalNorm = normalize(item.original_title || "");
+        return titleNorm === targetTitle || originalNorm === targetTitle;
+      });
+      if (exactTitle) return exactTitle;
+
+      // Avoid short-title collisions like "Spider" accidentally matching "Spider-Man".
+      const wordCount = targetTitle.split(/\s+/).filter(Boolean).length;
+      if (wordCount >= 2) {
+        const containsMatch = list.find((item) => normalize(item.title || "").includes(targetTitle));
+        if (containsMatch) return containsMatch;
+      }
+      return list[0] || null;
+    }
+
     async function fetchPosterForMovie(movie, size = "thumb") {
       const tmdbCandidates = [];
       const primary = String(tmdbApiKey || "").trim();
@@ -14404,6 +14479,19 @@
     }
 
     async function fetchPosterFromTmdb(movie, apiKey, size = "thumb") {
+      const tmdbId = getMovieTmdbId(movie);
+      if (tmdbId !== null) {
+        const detailsUrl = `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${encodeURIComponent(apiKey)}`;
+        const detailsRes = await fetch(detailsUrl);
+        if (detailsRes.status !== 401 && detailsRes.status !== 403 && detailsRes.ok) {
+          const detail = await detailsRes.json();
+          if (detail && detail.poster_path) {
+            const tmdbSize = size === "hero" ? "w780" : "w342";
+            return `https://image.tmdb.org/t/p/${tmdbSize}${detail.poster_path}`;
+          }
+        }
+      }
+
       const query = encodeURIComponent(movie.title);
       const yearParam = Number.isFinite(movie.year) ? `&year=${movie.year}` : "";
       const url = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${query}${yearParam}&include_adult=false&page=1`;
@@ -14414,8 +14502,7 @@
       const results = Array.isArray(payload.results) ? payload.results : [];
       if (!results.length) return null;
 
-      const target = normalize(movie.title);
-      const best = results.find((item) => normalize(item.title || "").includes(target)) || results[0];
+      const best = pickBestTmdbMovieResult(results, movie);
       if (!best || !best.poster_path) return null;
       const tmdbSize = size === "hero" ? "w780" : "w342";
       return `https://image.tmdb.org/t/p/${tmdbSize}${best.poster_path}`;
