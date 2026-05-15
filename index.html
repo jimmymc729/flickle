@@ -10851,7 +10851,7 @@
 
       let shareActionInFlight = false;
 
-      async function handleShareClick(preferNativeShare, targetBtn) {
+      async function handleShareClick(targetBtn) {
         if (shareActionInFlight) return;
         shareActionInFlight = true;
         trackAnalyticsEvent("share_clicked", {
@@ -10859,15 +10859,15 @@
           custom_mode: customMode ? "yes" : "no",
           puzzle_key: puzzleKey,
           context: targetBtn === els.finishShareBtn ? "result_screen" : "in_game",
-          native_share: preferNativeShare ? "yes" : "no"
+          native_share: "no"
         });
         if (targetBtn) targetBtn.disabled = true;
         try {
-          const result = await shareResult(Boolean(preferNativeShare), targetBtn);
+          const result = await shareResult();
           if (result === "copied") {
             flashActionButton(targetBtn, "Copied!");
-          } else if (result === "native") {
-            flashActionButton(targetBtn, "Shared!");
+          } else if (result === "manual") {
+            flashActionButton(targetBtn, "Copy Manually");
           }
         } finally {
           if (targetBtn) targetBtn.disabled = false;
@@ -10877,13 +10877,13 @@
 
       if (els.shareBtn) {
         els.shareBtn.addEventListener("click", function () {
-          handleShareClick(false, this);
+          handleShareClick(this);
         });
       }
 
       if (els.finishShareBtn) {
         els.finishShareBtn.addEventListener("click", function () {
-          handleShareClick(true, this);
+          handleShareClick(this);
         });
       }
 
@@ -10953,7 +10953,7 @@
           context: "preview_box",
           native_share: "no"
         });
-        handleShareClick(false, els.finishShareBtn);
+        handleShareClick(els.finishShareBtn);
       };
 
       if (els.sharePreviewText) {
@@ -12803,7 +12803,25 @@
     }
 
     const STUDIO_FAMILY_KEYWORDS = [
-      { id: "disney", keywords: ["walt disney", "disney", "pixar", "buena vista", "touchstone", "lucasfilm", "marvel studios", "searchlight", "20th century studios"] },
+      {
+        id: "disney",
+        keywords: [
+          "walt disney pictures",
+          "walt disney feature animation",
+          "walt disney animation studios",
+          "walt disney productions",
+          "disneytoon studios",
+          "buena vista",
+          "touchstone",
+          "lucasfilm",
+          "marvel studios",
+          "searchlight",
+          "20th century studios",
+          "20th century fox",
+          "disney"
+        ]
+      },
+      { id: "pixar", keywords: ["pixar animation studios", "pixar"] },
       { id: "warner", keywords: ["warner bros", "new line cinema", "new line", "dc studios"] },
       { id: "universal", keywords: ["universal pictures", "focus features", "illumination", "dreamworks"] },
       { id: "sony", keywords: ["sony pictures", "columbia pictures", "screen gems", "tristar", "tri star"] },
@@ -12824,6 +12842,16 @@
       return "";
     }
 
+    function isStudioFamilyNearMatch(leftFamily, rightFamily) {
+      if (!leftFamily || !rightFamily) return false;
+      if (leftFamily === rightFamily) return true;
+      // Pixar is a distinct label, but close to Disney umbrella for clue quality.
+      if ((leftFamily === "pixar" && rightFamily === "disney") || (leftFamily === "disney" && rightFamily === "pixar")) {
+        return true;
+      }
+      return false;
+    }
+
     function compareStudio(guessStudio, targetStudio) {
       const guessValue = String(guessStudio || "").trim();
       const targetValue = String(targetStudio || "").trim();
@@ -12834,7 +12862,7 @@
 
       const guessFamily = getStudioFamily(guessValue);
       const targetFamily = getStudioFamily(targetValue);
-      if (guessFamily && targetFamily && guessFamily === targetFamily) {
+      if (isStudioFamilyNearMatch(guessFamily, targetFamily)) {
         return { label: guessValue, state: "near" };
       }
 
@@ -13318,29 +13346,8 @@
       return Boolean(popup);
     }
 
-    async function shareResult(preferNativeShare, sourceBtn = null) {
+    async function shareResult() {
       const text = buildShareText();
-      const canNativeShare = preferNativeShare && typeof navigator.share === "function" && location.protocol !== "file:";
-      if (canNativeShare) {
-        try {
-          await navigator.share({
-            title: "Flickle Result",
-            text
-          });
-          trackAnalyticsEvent("share_success", {
-            method: "native",
-            game_mode: gameMode,
-            custom_mode: customMode ? "yes" : "no",
-            puzzle_key: puzzleKey
-          });
-          setStatus("Result shared.", "success");
-          playUiSound("share");
-          return "native";
-        } catch (error) {
-          if (error && error.name === "AbortError") return "aborted";
-          // Fall through to clipboard fallback.
-        }
-      }
       const copyResult = await copyTextWithFallback(text);
       if (copyResult === "copied") {
         trackAnalyticsEvent("share_success", {
@@ -13349,7 +13356,7 @@
           custom_mode: customMode ? "yes" : "no",
           puzzle_key: puzzleKey
         });
-        setStatus("Result copied to clipboard.", "success");
+        setStatus("Copied to clipboard.", "success");
         playUiSound("share");
         return "copied";
       } else {
@@ -13359,8 +13366,19 @@
           custom_mode: customMode ? "yes" : "no",
           puzzle_key: puzzleKey
         });
-        setStatus("Copy limited in this browser tab. Try in a hosted version for one-tap copy.", "complete");
+        showManualCopyFallback(text);
+        setStatus("Clipboard unavailable. Press ⌘C / Ctrl+C to copy.", "complete");
         return "manual";
+      }
+    }
+
+    function showManualCopyFallback(text) {
+      const safeText = String(text || "");
+      const promptMessage = "Copy failed. Press \u2318C / Ctrl+C to copy, then press Enter.";
+      try {
+        window.prompt(promptMessage, safeText);
+      } catch {
+        // No-op: status message already tells the user what to do.
       }
     }
 
