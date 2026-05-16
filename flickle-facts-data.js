@@ -1651,5 +1651,68 @@ window.FLICKLE_CURATED_FACTS = {
   ],
   "Southpaw": [
     "The project was initially developed as a potential star vehicle for Eminem before being reworked and led by Jake Gyllenhaal."
+  ],
+  "Brokeback Mountain": [
+    "Brokeback Mountain was filmed in just a few weeks, yet the emotional performances became some of the most acclaimed of both Heath Ledger and Jake Gyllenhaal's careers."
+  ],
+  "Kung Fu Panda 2": [
+    "In Kung Fu Panda 2, Lord Shen's fireworks cannons were inspired by real ancient Chinese inventions and early gunpowder weapons."
+  ],
+  "KPop Demon Hunters": [
+    "KPop Demon Hunters blends K-pop idol culture with supernatural action, turning concert choreography into literal combat sequences."
+  ],
+  "One Flew Over the Cuckoo's Nest": [
+    "Many of the patients in One Flew Over the Cuckoo's Nest were played by real psychiatric patients from the hospital where the movie was filmed."
+  ],
+  "Eyes Wide Shut": [
+    "Eyes Wide Shut became Stanley Kubrick's final movie and held the Guinness World Record for the longest continuous film shoot at the time."
+  ],
+  "The Wild Robot": [
+    "In The Wild Robot, the animation style intentionally mixed hand-painted textures with CGI to make the world feel more like a storybook."
+  ],
+  "Monsters vs Aliens": [
+    "Monsters vs. Aliens was one of the first major animated movies heavily designed around modern 3D theater technology during the 2000s 3D boom."
+  ],
+  "Poor Things": [
+    "In Poor Things, many sets were built with exaggerated proportions and distorted perspectives to reflect Bella's strange view of the world."
+  ],
+  "Alice in Wonderland": [
+    "Alice in Wonderland was one of the movies that helped launch the huge wave of live-action Disney remakes in the 2010s."
+  ],
+  "How to Train Your Dragon: The Hidden World": [
+    "The flying scenes in How to Train Your Dragon: The Hidden World were inspired by real aerial cinematography and nature documentaries."
+  ],
+  "Killers of the Flower Moon": [
+    "Killers of the Flower Moon was filmed partly on Osage Nation land with major involvement from the Osage community to improve authenticity."
+  ],
+  "Mission: Impossible - Ghost Protocol": [
+    "In Mission: Impossible - Ghost Protocol, Tom Cruise actually climbed the outside of the Burj Khalifa, the tallest building in the world."
+  ],
+  "Taxi Driver": [
+    "Taxi Driver inspired the famous line \"You talkin' to me?\" through improvised rehearsal by Robert De Niro."
+  ],
+  "The Croods": [
+    "The animators of The Croods studied real cave paintings and prehistoric animals while designing the movie's world."
+  ],
+  "Blade Runner": [
+    "Blade Runner originally received mixed reviews, but later became one of the most influential sci-fi movies ever made."
+  ],
+  "Bugonia": [
+    "Bugonia is based on the South Korean sci-fi comedy Save the Green Planet!."
+  ],
+  "The Garfield Movie": [
+    "The Garfield Movie marked one of the first times Garfield was fully animated in a theatrical movie rather than combined with live action."
+  ],
+  "Constantine": [
+    "In Constantine, many of Hell's visuals were inspired by real footage of nuclear tests, storms, and natural disasters."
+  ],
+  "Sleepers": [
+    "Sleepers features four future stars - Brad Pitt, Robert De Niro, Kevin Bacon, and Dustin Hoffman - all in the same film."
+  ],
+  "Now You See Me 2": [
+    "The card tricks in Now You See Me 2 were choreographed with real magicians so actors could perform many sleight-of-hand moves themselves."
+  ],
+  "xXx: Return of Xander Cage": [
+    "xXx: Return of Xander Cage was designed as a globe-spanning action movie, with filming taking place across multiple countries including the Philippines and Canada."
   ]
 };
