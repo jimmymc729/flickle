@@ -580,6 +580,9 @@ window.FLICKLE_CURATED_FACTS = {
   "Despicable Me": [
     "The Minions were originally supposed to look much more human before evolving into tiny yellow chaos creatures."
   ],
+  "Despicable Me 2": [
+    "In Despicable Me 2, the animators reportedly created over 10,000 unique Minions for crowd scenes so they would not all look like exact copies of each other."
+  ],
   "Moana": [
     "Disney consulted Polynesian navigators, historians, and cultural experts throughout production."
   ],
