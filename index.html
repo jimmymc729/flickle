@@ -22,14 +22,14 @@
   <meta property="og:description" content="Can you find the movie in 10 guesses? Play Flickle, the daily movie guessing game." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://flickle.io/" />
-  <meta property="og:image" content="https://flickle.io/social-preview.png" />
+  <meta property="og:image" content="https://flickle.io/social-preview.png?v=20260515-1" />
   <meta property="og:image:width" content="1254" />
   <meta property="og:image:height" content="1254" />
   <meta property="og:image:alt" content="Flickle cinematic logo design" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Flickle - Daily Movie Guess" />
   <meta name="twitter:description" content="Can you find the movie in 10 guesses? Play Flickle." />
-  <meta name="twitter:image" content="https://flickle.io/social-preview.png" />
+  <meta name="twitter:image" content="https://flickle.io/social-preview.png?v=20260515-1" />
   <style>
     :root {
       --app-height: 100vh;
@@ -420,6 +420,62 @@
       color: #95a3be;
       word-break: break-all;
       margin-top: 6px;
+    }
+    .consent-banner {
+      position: fixed;
+      left: max(10px, calc(10px + var(--safe-left)));
+      right: max(10px, calc(10px + var(--safe-right)));
+      bottom: max(10px, calc(10px + var(--safe-bottom)));
+      z-index: 46;
+      border: 1px solid rgba(143, 123, 255, 0.36);
+      border-radius: 12px;
+      background: rgba(14, 20, 35, 0.96);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+      padding: 12px;
+      display: none;
+      gap: 10px;
+    }
+    .consent-banner.on {
+      display: grid;
+    }
+    .consent-banner-title {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #eaf0ff;
+      letter-spacing: 0.25px;
+      text-transform: uppercase;
+    }
+    .consent-banner-text {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: #cdd6ea;
+    }
+    .consent-banner-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .consent-btn {
+      border: 1px solid rgba(143, 123, 255, 0.48);
+      background: #1a2238;
+      color: #e8edfb;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 0.83rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .consent-btn.primary {
+      border-color: rgba(170, 222, 126, 0.62);
+      background: #b9ea74;
+      color: #1b2a0d;
+    }
+    .consent-status {
+      margin: 0;
+      font-size: 0.8rem;
+      color: #9fb0d7;
     }
 
     .canvas {
@@ -2063,6 +2119,7 @@
           <button id="menu-about" class="menu-link subtle" type="button">About</button>
           <button id="menu-contact" class="menu-link subtle" type="button">Contact</button>
           <button id="menu-privacy" class="menu-link subtle" type="button">Privacy</button>
+          <button id="menu-consent" class="menu-link subtle" type="button">Consent</button>
           <button id="menu-terms" class="menu-link subtle" type="button">Terms</button>
         </div>
         <h3 class="menu-heading">Need more Flickle?</h3>
@@ -2085,6 +2142,16 @@
         <div id="modal-body" class="modal-body"></div>
       </section>
     </div>
+    <section id="consent-banner" class="consent-banner" aria-label="Cookie consent notice" aria-live="polite">
+      <p class="consent-banner-title">Cookie & Ad Consent</p>
+      <p class="consent-banner-text">Flickle uses cookies for core gameplay and, when enabled, advertising/measurement. Choose your preference.</p>
+      <div class="consent-banner-actions">
+        <button id="consent-accept-btn" class="consent-btn primary" type="button">Accept All</button>
+        <button id="consent-essential-btn" class="consent-btn" type="button">Essential Only</button>
+        <button id="consent-manage-btn" class="consent-btn" type="button">Manage</button>
+      </div>
+      <p id="consent-status" class="consent-status"></p>
+    </section>
 
     <section class="canvas">
       <aside class="rail" aria-hidden="true"></aside>
@@ -2220,8 +2287,14 @@
     const JAM_MIN_RATING = 6.0;
     const JAM_MIN_CAST_SCORE = 5;
     const JAM_MIN_POPULARITY = 8;
+    const SEASONAL_BOOST_ENABLED = true;
+    const SEASONAL_BOOST_RATE = 0.35;
+    const SEASONAL_BASE_MULTIPLIER = 1.35;
+    const SEASONAL_COOLDOWN_MULTIPLIER = 1.18;
+    const SEASONAL_WEIGHT_VERSION = "seasonal-v2";
     const UI_SETTINGS_KEY = "flickle-ui-settings";
     const STATS_KEY = "flickle-stats";
+    const CONSENT_PREF_KEY = "flickle-consent-pref-v1";
     const THUMB_CACHE_KEY = "flickle-thumb-cache-v2";
     const CAST_PORTRAIT_CACHE_KEY = "flickle-cast-portrait-cache-v1";
     const RATING_CACHE_KEY = "flickle-rating-cache-v1";
@@ -2279,6 +2352,59 @@
         console.warn("Flickle storage remove failed:", error);
       }
       delete storageFallback[key];
+    }
+
+    function normalizeConsentChoice(raw) {
+      if (raw === "all" || raw === "essential") return raw;
+      return null;
+    }
+
+    function loadConsentChoice() {
+      const raw = storageGet(CONSENT_PREF_KEY);
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        return normalizeConsentChoice(parsed && parsed.choice);
+      } catch {
+        return normalizeConsentChoice(raw);
+      }
+    }
+
+    function saveConsentChoice(choice) {
+      const normalized = normalizeConsentChoice(choice);
+      if (!normalized) return;
+      consentChoice = normalized;
+      storageSet(CONSENT_PREF_KEY, JSON.stringify({
+        choice: normalized,
+        updatedAt: new Date().toISOString()
+      }));
+      applyConsentToRuntime();
+      renderConsentBanner();
+    }
+
+    function applyConsentToRuntime() {
+      const adGranted = consentChoice === "all";
+      window.flickleConsentState = {
+        ad_storage: adGranted ? "granted" : "denied",
+        analytics_storage: adGranted ? "granted" : "denied"
+      };
+      if (typeof window.gtag === "function") {
+        window.gtag("consent", "update", window.flickleConsentState);
+      }
+    }
+
+    function renderConsentBanner() {
+      if (!els.consentBanner) return;
+      const needsChoice = !normalizeConsentChoice(consentChoice);
+      els.consentBanner.classList.toggle("on", needsChoice);
+      if (els.consentStatus) {
+        const label = consentChoice === "all"
+          ? "Current choice: Accept all."
+          : consentChoice === "essential"
+            ? "Current choice: Essential only."
+            : "No preference saved yet.";
+        els.consentStatus.textContent = label;
+      }
     }
 
     function getPracticeStorageKey(seed) {
@@ -10083,6 +10209,7 @@
       menuAbout: document.getElementById("menu-about"),
       menuContact: document.getElementById("menu-contact"),
       menuPrivacy: document.getElementById("menu-privacy"),
+      menuConsent: document.getElementById("menu-consent"),
       menuTerms: document.getElementById("menu-terms"),
       modeDaily: document.getElementById("mode-daily"),
       modeRewind: document.getElementById("mode-rewind"),
@@ -10091,7 +10218,12 @@
       modalOverlay: document.getElementById("modal-overlay"),
       modalCloseBtn: document.getElementById("modal-close-btn"),
       modalTitle: document.getElementById("modal-title"),
-      modalBody: document.getElementById("modal-body")
+      modalBody: document.getElementById("modal-body"),
+      consentBanner: document.getElementById("consent-banner"),
+      consentAcceptBtn: document.getElementById("consent-accept-btn"),
+      consentEssentialBtn: document.getElementById("consent-essential-btn"),
+      consentManageBtn: document.getElementById("consent-manage-btn"),
+      consentStatus: document.getElementById("consent-status")
     };
 
     const movieByNormTitle = new Map();
@@ -10707,6 +10839,7 @@
     let typeaheadOptions = [];
     let activeTypeaheadIndex = -1;
     let typeaheadHideTimer = null;
+    let consentChoice = null;
 
     if (urlParams.get("reset") === "1") {
       storageRemove(storageKey);
@@ -10714,6 +10847,8 @@
     }
 
     loadState();
+    consentChoice = loadConsentChoice();
+    applyConsentToRuntime();
     if (state.finished) {
       state.message = buildCompletionStatusMessage();
     }
@@ -10740,6 +10875,7 @@
     }
     try {
       bindTopShell();
+      renderConsentBanner();
     } catch (error) {
       console.error("Flickle shell init failed:", error);
     }
@@ -12451,13 +12587,13 @@
         if (String(row.getAttribute("data-movie-key") || "") !== movieKey) continue;
         const thumbSlot = row.querySelector(".guess-typeahead-thumb");
         if (!thumbSlot) continue;
-        thumbSlot.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`;
+        thumbSlot.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" />`;
       }
     }
 
     function hydrateTypeaheadPosters(options) {
       if (!Array.isArray(options) || !options.length) return;
-      const maxHydrate = Math.min(8, options.length);
+      const maxHydrate = Math.min(12, options.length);
       for (let i = 0; i < maxHydrate; i += 1) {
         const entry = options[i];
         if (!entry || !entry.movie) continue;
@@ -13016,7 +13152,7 @@
       return `${movie.title} (${year})`;
     }
 
-    function getGuessTypeaheadOptions(input, limit = 8) {
+    function getGuessTypeaheadOptions(input, limit = 12) {
       const raw = String(input || "").trim();
       if (!raw) return [];
       const { titlePart, year } = splitInputTitleAndYear(raw);
@@ -13033,6 +13169,9 @@
         const compactTitle = normalizeCompact(movie.title);
         const compactTitleNoArticle = stripLeadingArticle(compactTitle);
         if (!normTitle) continue;
+        const titleWords = normTitle.split(/\s+/).filter(Boolean);
+        const paddedTitle = ` ${normTitle} `;
+        const paddedInput = ` ${normInput} `;
 
         let score = 0;
         const exactTitle = normTitle === normInput;
@@ -13040,11 +13179,21 @@
         else if (normTitle.startsWith(normInput)) score += 120;
         else if (normTitle.includes(normInput)) score += 88;
         else if (normInput.includes(normTitle)) score += 66;
+        if (paddedTitle.includes(paddedInput)) score += 84;
 
+        let matchedInputWordCount = 0;
         for (const word of inputWords) {
           if (word.length < 2) continue;
-          if (normTitle.includes(word)) score += 14;
-          if (normTitle.split(/\s+/).some((titleWord) => titleWord.startsWith(word))) score += 11;
+          const hasContains = normTitle.includes(word);
+          const hasWholeWord = titleWords.includes(word);
+          const hasWordPrefix = titleWords.some((titleWord) => titleWord.startsWith(word));
+          if (hasContains) score += 14;
+          if (hasWordPrefix) score += 11;
+          if (hasWholeWord) score += 34;
+          if (hasWholeWord || hasWordPrefix || hasContains) matchedInputWordCount += 1;
+        }
+        if (inputWords.length && matchedInputWordCount === inputWords.length) {
+          score += 52;
         }
 
         if (compactInput && compactTitle) {
@@ -13246,7 +13395,7 @@
         return;
       }
 
-      const options = getGuessTypeaheadOptions(raw, 8);
+      const options = getGuessTypeaheadOptions(raw, 12);
       if (!options.length) {
         hideGuessTypeahead();
         return;
@@ -13261,7 +13410,7 @@
         const thumb = thumbCache[thumbKey];
         const fallback = escapeHtml((movie.title || "?").trim().charAt(0).toUpperCase() || "?");
         const thumbMarkup = thumb
-          ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`
+          ? `<img src="${escapeHtml(thumb)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" />`
           : fallback;
         const genreText = Array.isArray(movie.genres) && movie.genres.length
           ? escapeHtml(movie.genres.slice(0, 2).join(", "))
@@ -13772,6 +13921,9 @@
       bind(els.menuPrivacy, "click", () => {
         showPrivacyModal();
       }, "menu-privacy");
+      bind(els.menuConsent, "click", () => {
+        showConsentModal();
+      }, "menu-consent");
       bind(els.menuTerms, "click", () => {
         showTermsModal();
       }, "menu-terms");
@@ -13800,6 +13952,16 @@
         if (event.target === els.modalOverlay) closeModal();
       }, "modal-overlay");
       bind(els.modalCloseBtn, "click", closeModal, "modal-close-btn");
+
+      bind(els.consentAcceptBtn, "click", () => {
+        saveConsentChoice("all");
+      }, "consent-accept-btn");
+      bind(els.consentEssentialBtn, "click", () => {
+        saveConsentChoice("essential");
+      }, "consent-essential-btn");
+      bind(els.consentManageBtn, "click", () => {
+        showConsentModal();
+      }, "consent-manage-btn");
 
       // Delegated fallback: keeps top controls working even if one direct bind misses.
       if (!window.__flickleTopShellDelegatedBound) {
@@ -13926,8 +14088,9 @@
         `<div class="howto">
           <section class="howto-section">
             <h3 class="howto-heading">Feedback and Support</h3>
-            <p class="howto-text">Want to report a bug, suggest a feature, or request a movie/fact addition? Reach out on:</p>
+            <p class="howto-text">Want to report a bug, suggest a feature, or request a movie/fact addition? Reach out any time:</p>
             <ul class="howto-list">
+              <li><strong>Email:</strong> support@flickle.io</li>
               <li><strong>X:</strong> @Flickle_io</li>
               <li><strong>Bluesky:</strong> @Flickle.io</li>
             </ul>
@@ -13950,21 +14113,78 @@
         "Privacy",
         `<div class="howto">
           <section class="howto-section">
-            <h3 class="howto-heading">Data Storage</h3>
-            <p class="howto-text">Flickle stores gameplay settings and progress in your browser's local storage for this build (for example streaks, guesses, and UI preferences).</p>
+            <h3 class="howto-heading">What We Store</h3>
+            <p class="howto-text">Flickle stores gameplay settings and progress in your browser (for example streaks, guesses, and UI preferences). This helps your game state persist between visits.</p>
           </section>
           <section class="howto-section">
-            <h3 class="howto-heading">No Account System Yet</h3>
-            <p class="howto-text">This version does not require logins and does not provide server-side player accounts.</p>
+            <h3 class="howto-heading">Accounts</h3>
+            <p class="howto-text">Flickle currently does not require user logins and does not provide server-side player accounts.</p>
+          </section>
+          <section class="howto-section">
+            <h3 class="howto-heading">Cookies and Advertising</h3>
+            <p class="howto-text">Flickle may use cookies and similar technologies for core site functionality, analytics, and advertising. Third-party vendors, including Google, may use cookies to serve ads based on your prior visits to this site or other sites.</p>
           </section>
           <section class="howto-section">
             <h3 class="howto-heading">Third-Party Services</h3>
-            <p class="howto-text">Movie metadata and artwork lookups may use The Movie Database (TMDB). If ad services are added in the future, this policy should be updated with cookie and consent details.</p>
+            <p class="howto-text">Movie metadata and artwork may use The Movie Database (TMDB). Advertising and measurement services may process identifiers such as cookies, IP address, and device/browser information to deliver and measure ads.</p>
           </section>
-          <p class="howto-mini">Last updated: May 13, 2026.</p>
+          <section class="howto-section">
+            <h3 class="howto-heading">Your Choices</h3>
+            <p class="howto-text">Where required by law, Flickle requests consent before using non-essential cookies. You can also manage cookie preferences in your browser settings. For ad personalization controls, you can review Google ad settings and available opt-out options.</p>
+          </section>
+          <section class="howto-section">
+            <h3 class="howto-heading">Questions</h3>
+            <p class="howto-text">For privacy questions or requests, contact: support@flickle.io.</p>
+          </section>
+          <p class="howto-mini">Last updated: May 17, 2026.</p>
         </div>`,
         true
       );
+    }
+
+    function showConsentModal() {
+      const current = consentChoice === "all"
+        ? "Accept all"
+        : consentChoice === "essential"
+          ? "Essential only"
+          : "Not set";
+      const body = `
+        <div class="howto">
+          <section class="howto-section">
+            <h3 class="howto-heading">Current Preference</h3>
+            <p class="howto-text">${escapeHtml(current)}</p>
+          </section>
+          <section class="howto-section">
+            <h3 class="howto-heading">What This Controls</h3>
+            <p class="howto-text">Essential storage keeps core gameplay working. "Accept all" also allows non-essential technologies used for advertising and measurement where enabled.</p>
+          </section>
+          <section class="howto-section">
+            <h3 class="howto-heading">Update Choice</h3>
+            <div class="modal-actions">
+              <button id="consent-modal-accept" class="modal-btn" type="button">Accept All</button>
+              <button id="consent-modal-essential" class="modal-btn" type="button">Essential Only</button>
+            </div>
+          </section>
+          <p class="howto-mini">You can return here any time to change this setting.</p>
+        </div>
+      `;
+      showModal("Consent", body, true);
+      const acceptBtn = document.getElementById("consent-modal-accept");
+      const essentialBtn = document.getElementById("consent-modal-essential");
+      if (acceptBtn) {
+        acceptBtn.addEventListener("click", () => {
+          saveConsentChoice("all");
+          closeModal();
+          setStatus("Consent updated: Accept all.", "success");
+        });
+      }
+      if (essentialBtn) {
+        essentialBtn.addEventListener("click", () => {
+          saveConsentChoice("essential");
+          closeModal();
+          setStatus("Consent updated: Essential only.", "success");
+        });
+      }
     }
 
     function showTermsModal() {
@@ -13983,7 +14203,19 @@
             <h3 class="howto-heading">Intellectual Property</h3>
             <p class="howto-text">Flickle branding and game presentation belong to the site owner. Movie titles, posters, and related trademarks belong to their respective owners.</p>
           </section>
-          <p class="howto-mini">By using Flickle, you agree to these terms. Last updated: May 13, 2026.</p>
+          <section class="howto-section">
+            <h3 class="howto-heading">Limitation of Liability</h3>
+            <p class="howto-text">Flickle is provided "as is" and "as available." To the fullest extent permitted by law, Flickle is not liable for indirect, incidental, or consequential damages arising from use of the site.</p>
+          </section>
+          <section class="howto-section">
+            <h3 class="howto-heading">Changes to Terms</h3>
+            <p class="howto-text">These terms may be updated over time. Continued use of Flickle after updates means you accept the revised terms.</p>
+          </section>
+          <section class="howto-section">
+            <h3 class="howto-heading">Contact</h3>
+            <p class="howto-text">Legal or policy questions: support@flickle.io.</p>
+          </section>
+          <p class="howto-mini">By using Flickle, you agree to these terms. Last updated: May 17, 2026.</p>
         </div>`,
         true
       );
@@ -14919,6 +15151,62 @@
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     }
 
+    function parsePuzzleDateKey(key) {
+      const text = String(key || "").trim();
+      const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return null;
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+      const date = new Date(year, month - 1, day);
+      if (date.getFullYear() !== year || (date.getMonth() + 1) !== month || date.getDate() !== day) return null;
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    function getSeasonalWindowForDate(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const mmdd = month * 100 + day;
+      if (mmdd >= 1024 && mmdd <= 1031) return { id: "halloween" };
+      if (mmdd >= 1220 && mmdd <= 1231) return { id: "winter" };
+      if (mmdd >= 212 && mmdd <= 214) return { id: "valentine" };
+      return null;
+    }
+
+    function hasSeasonalTag(movie, seasonalWindowId) {
+      if (!movie || typeof movie !== "object" || !seasonalWindowId) return false;
+      const titleKey = normalize(movie.title);
+      const genreKeys = Array.isArray(movie.genres)
+        ? movie.genres.map((genre) => normalize(genre)).filter(Boolean)
+        : [];
+      const hasGenre = (name) => genreKeys.includes(normalize(name));
+
+      if (seasonalWindowId === "halloween") {
+        return hasGenre("horror")
+          || hasGenre("thriller")
+          || hasGenre("mystery")
+          || titleKey.includes("halloween");
+      }
+      if (seasonalWindowId === "winter") {
+        return titleKey.includes("christmas")
+          || titleKey.includes("holiday")
+          || titleKey.includes("xmas")
+          || titleKey.includes("santa")
+          || titleKey.includes("noel")
+          || titleKey.includes("winter")
+          || titleKey.includes("snow");
+      }
+      if (seasonalWindowId === "valentine") {
+        return hasGenre("romance")
+          || titleKey.includes("valentine")
+          || titleKey.includes("love");
+      }
+      return false;
+    }
+
     function hash(text) {
       let value = 0;
       for (let i = 0; i < text.length; i += 1) {
@@ -14937,7 +15225,7 @@
       };
     }
 
-    function computeAnswerWeight(movie, mode) {
+    function computeAnswerWeight(movie, mode, seasonalContext = null) {
       const castScore = getMovieCastScore(movie);
       const voteCount = Number.isFinite(movie.voteCount) ? movie.voteCount : 0;
       const voteAverage = Number.isFinite(movie.voteAverage) ? movie.voteAverage : 0;
@@ -14945,21 +15233,57 @@
       const voteBonus = Math.max(0, Math.min(5, Math.log10(Math.max(1, voteCount)) - 2));
       const ratingBonus = Math.max(0, voteAverage - ANSWER_MIN_RATING);
       const popBonus = Math.max(0, Math.min(4, popularity / 12));
+      let seasonalMultiplier = 1;
+
+      if (
+        seasonalContext
+        && seasonalContext.enabled
+        && seasonalContext.windowId
+        && hasSeasonalTag(movie, seasonalContext.windowId)
+      ) {
+        seasonalMultiplier = seasonalContext.multiplier;
+      }
 
       if (mode === "jam") {
         // Practice keeps variety, but heavily favors recognizable mainstream titles.
-        return 1 + castScore * 1.8 + voteBonus * 1.2 + ratingBonus * 1.4 + popBonus * 1.3;
+        return (1 + castScore * 1.8 + voteBonus * 1.2 + ratingBonus * 1.4 + popBonus * 1.3) * seasonalMultiplier;
       }
       // Daily should feel mainstream/familiar.
-      return 1 + castScore * 2.1 + voteBonus * 1.2 + ratingBonus * 1.3 + popBonus * 1.0;
+      return (1 + castScore * 2.1 + voteBonus * 1.2 + ratingBonus * 1.3 + popBonus * 1.0) * seasonalMultiplier;
     }
 
     function pickWeightedMovie(pool, seedKey, mode) {
       const fallbackPool = Array.isArray(pool) && pool.length ? pool : MOVIES;
+      let seasonalContext = null;
+      if (SEASONAL_BOOST_ENABLED && mode === "daily") {
+        const puzzleDate = parsePuzzleDateKey(seedKey);
+        const seasonalWindow = getSeasonalWindowForDate(puzzleDate);
+        if (seasonalWindow && seasonalWindow.id) {
+          const boostGateRand = seededRandom(hash(`${seedKey}|${seasonalWindow.id}|${SEASONAL_WEIGHT_VERSION}|gate`));
+          const boostToday = boostGateRand() < SEASONAL_BOOST_RATE;
+          let boostedYesterday = false;
+          const previousDate = buildPuzzleDate(puzzleDate, -1);
+          const previousWindow = getSeasonalWindowForDate(previousDate);
+          if (previousWindow && previousWindow.id === seasonalWindow.id) {
+            const previousKey = formatPuzzleKey(previousDate);
+            const prevBoostRand = seededRandom(hash(`${previousKey}|${seasonalWindow.id}|${SEASONAL_WEIGHT_VERSION}|gate`));
+            boostedYesterday = prevBoostRand() < SEASONAL_BOOST_RATE;
+          }
+          // Prevent back-to-back seasonal push days to avoid over-theming.
+          const effectiveBoostToday = boostToday && !boostedYesterday;
+          if (effectiveBoostToday || boostedYesterday) {
+            seasonalContext = {
+              enabled: true,
+              windowId: seasonalWindow.id,
+              multiplier: boostedYesterday ? SEASONAL_COOLDOWN_MULTIPLIER : SEASONAL_BASE_MULTIPLIER
+            };
+          }
+        }
+      }
       const rand = seededRandom(hash(`${seedKey}|${mode}|flickle-cast-v1`));
       let totalWeight = 0;
       const weights = fallbackPool.map((movie) => {
-        const weight = Math.max(0.001, computeAnswerWeight(movie, mode));
+        const weight = Math.max(0.001, computeAnswerWeight(movie, mode, seasonalContext));
         totalWeight += weight;
         return weight;
       });
