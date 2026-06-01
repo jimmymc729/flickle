@@ -1,0 +1,18 @@
+name = "flickle-api"
+main = "src/index.js"
+compatibility_date = "2026-05-31"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "flickle-db"
+database_id = "ead82068-7d1b-484a-9994-eaa45721e790"
+
+[vars]
+PUBLIC_ORIGIN = "https://flickle.io"
+AUTH_SUCCESS_REDIRECT = "https://flickle.io/"
+DEV_AUTH_LINKS = "0"
+ALLOWED_ORIGINS = "https://flickle.io,https://www.flickle.io"
+AUTH_EMAIL_PROVIDER = "resend"
+AUTH_FROM_EMAIL = "Flickle <signin@flickle.io>"
+AUTH_EMAIL_SUBJECT = "Your Flickle sign-in link"

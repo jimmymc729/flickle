@@ -421,6 +421,300 @@
       word-break: break-all;
       margin-top: 6px;
     }
+    .archive-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+      max-height: 420px;
+      overflow: auto;
+      padding: 2px 4px 2px 2px;
+    }
+    .archive-card {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      border-radius: 14px;
+      border: 1px solid rgba(128, 144, 188, 0.5);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(164, 184, 240, 0.14), transparent 60%),
+        linear-gradient(180deg, rgba(16, 21, 34, 0.98), rgba(10, 14, 23, 0.99));
+      color: #e8eefc;
+      padding: 11px 18px 10px;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.16s ease;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+    }
+    .archive-card::before,
+    .archive-card::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      width: 12px;
+      border-radius: 3px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(7, 10, 18, 0) 0 4px,
+          rgba(7, 10, 18, 0.98) 4px 13px,
+          rgba(7, 10, 18, 0) 13px 20px
+        ),
+        linear-gradient(180deg, rgba(63, 76, 111, 0.95), rgba(35, 45, 72, 0.98));
+      box-shadow:
+        inset 0 0 0 1px rgba(189, 205, 244, 0.14),
+        0 0 0 1px rgba(6, 9, 16, 0.65);
+      z-index: 1;
+      pointer-events: none;
+    }
+    .archive-card::before {
+      left: 4px;
+    }
+    .archive-card::after {
+      right: 4px;
+    }
+    .archive-card:hover,
+    .archive-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(178, 196, 255, 0.82);
+      box-shadow: 0 10px 24px rgba(10, 14, 28, 0.5);
+      outline: none;
+    }
+    .archive-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .archive-card-art {
+      position: relative;
+      flex: 1;
+      min-height: 122px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(170, 187, 230, 0.34);
+      background:
+        radial-gradient(circle at 50% 8%, rgba(161, 181, 241, 0.16), transparent 56%),
+        linear-gradient(180deg, rgba(32, 43, 72, 0.94), rgba(17, 25, 43, 0.98));
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        inset 0 -26px 34px rgba(0, 0, 0, 0.32);
+    }
+    .archive-card-art::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.025) 0 1px,
+        rgba(255, 255, 255, 0) 1px 9px
+      );
+      pointer-events: none;
+    }
+    .archive-card-art::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 120%, rgba(0, 0, 0, 0.34), transparent 58%);
+      pointer-events: none;
+    }
+    .archive-card-art-mark {
+      position: absolute;
+      left: 10px;
+      top: 9px;
+      font-size: 1.35rem;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: rgba(223, 235, 255, 0.14);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      z-index: 2;
+    }
+    .archive-card-art-meta {
+      position: absolute;
+      left: 10px;
+      bottom: 9px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(223, 234, 255, 0.58);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      z-index: 2;
+    }
+    .archive-card-date {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 28px;
+      text-align: center;
+      font-size: 1.02rem;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: 0.25px;
+      color: #f8fbff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 2;
+    }
+    .archive-card-sub {
+      margin-top: auto;
+      font-size: 0.79rem;
+      color: #9fb0d3;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+    .archive-card-status {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1.2;
+      border: 1px solid rgba(162, 176, 205, 0.5);
+      background: rgba(53, 64, 89, 0.95);
+      color: #dbe6ff;
+      white-space: nowrap;
+      box-shadow:
+        0 6px 12px rgba(5, 8, 15, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .archive-card.state-won {
+      border-color: rgba(125, 208, 163, 0.52);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(121, 206, 160, 0.16), transparent 62%),
+        linear-gradient(180deg, rgba(20, 37, 31, 0.98), rgba(13, 26, 21, 0.99));
+    }
+    .archive-card.state-won .archive-card-art {
+      background:
+        radial-gradient(circle at 50% 8%, rgba(155, 241, 188, 0.2), transparent 56%),
+        linear-gradient(180deg, rgba(34, 61, 49, 0.94), rgba(17, 36, 29, 0.98));
+    }
+    .archive-card.state-won .archive-card-status {
+      border-color: rgba(142, 233, 181, 0.62);
+      background: rgba(64, 118, 88, 0.96);
+      color: #eafff1;
+    }
+    .archive-card.state-lost {
+      border-color: rgba(209, 124, 124, 0.56);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(210, 126, 126, 0.16), transparent 62%),
+        linear-gradient(180deg, rgba(41, 23, 27, 0.98), rgba(26, 14, 17, 0.99));
+    }
+    .archive-card.state-lost .archive-card-art {
+      background:
+        radial-gradient(circle at 50% 8%, rgba(248, 169, 169, 0.18), transparent 56%),
+        linear-gradient(180deg, rgba(72, 38, 43, 0.94), rgba(39, 19, 24, 0.98));
+    }
+    .archive-card.state-lost .archive-card-status {
+      border-color: rgba(142, 233, 181, 0.62);
+      background: rgba(64, 118, 88, 0.96);
+      color: #eafff1;
+    }
+    .archive-card.state-started {
+      border-color: rgba(132, 146, 182, 0.56);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(141, 157, 198, 0.17), transparent 62%),
+        linear-gradient(180deg, rgba(28, 35, 54, 0.98), rgba(18, 24, 39, 0.99));
+    }
+    .archive-card.state-started .archive-card-art {
+      background:
+        radial-gradient(circle at 50% 8%, rgba(174, 192, 243, 0.18), transparent 56%),
+        linear-gradient(180deg, rgba(42, 52, 80, 0.94), rgba(22, 30, 51, 0.98));
+    }
+    .archive-card.state-started .archive-card-status {
+      border-color: rgba(245, 215, 133, 0.72);
+      background: rgba(128, 100, 33, 0.96);
+      color: #fff2cd;
+    }
+    .archive-card.state-perfect {
+      border-color: rgba(228, 206, 126, 0.72);
+      box-shadow: 0 8px 22px rgba(81, 61, 8, 0.35);
+    }
+    .archive-card.state-perfect .archive-card-status {
+      border-color: rgba(142, 233, 181, 0.62);
+      background: rgba(64, 118, 88, 0.96);
+      color: #eafff1;
+    }
+    .archive-progress {
+      margin-top: 10px;
+      border: 1px solid rgba(117, 135, 184, 0.45);
+      border-radius: 10px;
+      background: rgba(18, 24, 39, 0.85);
+      padding: 10px 10px 9px;
+    }
+    .archive-progress-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .archive-progress-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #aab9da;
+      font-weight: 800;
+    }
+    .archive-progress-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.74rem;
+      color: #d7e2fd;
+      font-weight: 700;
+    }
+    .archive-progress-values strong {
+      color: #f4f8ff;
+      font-weight: 800;
+    }
+    .archive-progress-bar {
+      margin-top: 8px;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(23, 33, 54, 0.9);
+      overflow: hidden;
+      border: 1px solid rgba(120, 137, 180, 0.38);
+    }
+    .archive-progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #95d86e 0%, #69c9a0 100%);
+      box-shadow: 0 0 14px rgba(126, 222, 166, 0.33);
+      transition: width 0.22s ease;
+    }
+    @media (max-width: 560px) {
+      .archive-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .archive-card {
+        padding: 10px 15px 9px;
+      }
+      .archive-card-art {
+        min-height: 94px;
+      }
+      .archive-card-date {
+        font-size: 0.93rem;
+      }
+      .archive-card-sub {
+        font-size: 0.74rem;
+      }
+      .archive-progress-values {
+        gap: 7px 8px;
+        font-size: 0.7rem;
+      }
+    }
     .consent-banner {
       position: fixed;
       left: max(10px, calc(10px + var(--safe-left)));
@@ -2125,12 +2419,14 @@
         <h3 class="menu-heading">Need more Flickle?</h3>
         <button id="mode-daily" class="menu-link" type="button">Daily</button>
         <p class="menu-note">Play today's official puzzle.</p>
-        <button id="mode-rewind" class="menu-link" type="button">Rewind</button>
-        <p class="menu-note">Play yesterday's puzzle.</p>
-        <button id="mode-jam" class="menu-link" type="button">Practice</button>
-        <p class="menu-note">Endless practice puzzles with 10 guesses each.</p>
+        <button id="mode-archive" class="menu-link" type="button">Archive</button>
+        <p class="menu-note">Replay any past daily puzzle.</p>
         <button id="mode-create" class="menu-link" type="button">Create</button>
         <p class="menu-note">Create a custom movie puzzle link for a friend.</p>
+        <h3 class="menu-heading">Account</h3>
+        <p id="auth-status-text" class="menu-note">Checking account status...</p>
+        <button id="auth-signin-btn" class="menu-link" type="button">Sign In</button>
+        <button id="auth-signout-btn" class="menu-link subtle hidden" type="button">Sign Out</button>
       </div>
     </aside>
     <div id="modal-overlay" class="modal-overlay">
@@ -2302,6 +2598,7 @@
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
     const PRACTICE_LAST_SEED_KEY = "flickle-practice-last-seed";
     const PRACTICE_IN_PROGRESS_KEY = "flickle-practice-in-progress";
+    const ARCHIVE_SYNC_KEY_PREFIX = "flickle-archive-sync";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const UI_SOUND_TYPES = Object.freeze(["start", "guess", "share", "win", "lose", "error", "toggle-on", "hint-ready"]);
     const storageFallback = {};
@@ -10212,9 +10509,11 @@
       menuConsent: document.getElementById("menu-consent"),
       menuTerms: document.getElementById("menu-terms"),
       modeDaily: document.getElementById("mode-daily"),
-      modeRewind: document.getElementById("mode-rewind"),
-      modeJam: document.getElementById("mode-jam"),
+      modeArchive: document.getElementById("mode-archive"),
       modeCreate: document.getElementById("mode-create"),
+      authStatusText: document.getElementById("auth-status-text"),
+      authSignInBtn: document.getElementById("auth-signin-btn"),
+      authSignOutBtn: document.getElementById("auth-signout-btn"),
       modalOverlay: document.getElementById("modal-overlay"),
       modalCloseBtn: document.getElementById("modal-close-btn"),
       modalTitle: document.getElementById("modal-title"),
@@ -10767,14 +11066,19 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
+    const explicitApiBase = (urlParams.get("api") || "").trim();
+    const apiBaseOrigin = resolveApiBaseOrigin(explicitApiBase);
     installViewportHeightFix();
     const tmdbApiKey = loadTmdbApiKey(urlParams);
     const uiSettings = loadUiSettings();
     const customMovie = parseCustomMovieFromUrl();
     const customMode = Boolean(customMovie);
     const requestedMode = (urlParams.get("mode") || "daily").toLowerCase();
-    const gameMode = customMode ? "custom" : (requestedMode === "rewind" || requestedMode === "jam" ? requestedMode : "daily");
-    const rewindOffset = -1;
+    const archiveDateParam = (urlParams.get("date") || "").trim();
+    const archiveDefaultDate = buildPuzzleDate(new Date(), -1);
+    const archiveSelectedDate = parsePuzzleDateKey(archiveDateParam) || archiveDefaultDate;
+    const isArchiveModeRequested = requestedMode === "archive" || requestedMode === "rewind";
+    const gameMode = customMode ? "custom" : (isArchiveModeRequested ? "archive" : "daily");
     const explicitPracticeSeed = (urlParams.get("seed") || "").trim();
     const rememberedPracticeSeed = requestedMode === "jam" && !explicitPracticeSeed
       ? (storageGet(PRACTICE_LAST_SEED_KEY) || "").trim()
@@ -10784,7 +11088,9 @@
       || (rememberedPracticeProgress.inProgress ? rememberedPracticeSeed : "")
       || String(Date.now());
     const today = new Date();
-    const puzzleDate = buildPuzzleDate(today, gameMode === "rewind" ? rewindOffset : 0);
+    const puzzleDate = gameMode === "archive"
+      ? archiveSelectedDate
+      : buildPuzzleDate(today, 0);
     const puzzleKey = customMode
       ? `custom-${hash(movieIdentityKey(customMovie) || normalize(customMovie.title))}`
       : gameMode === "jam"
@@ -10795,13 +11101,15 @@
       ? DATA_AUDIT.jamAnswerPool
       : dailyAnswerPool;
     const answerPoolForMode = gameMode === "jam" ? jamAnswerPool : dailyAnswerPool;
-    const answer = customMode ? customMovie : pickWeightedMovie(answerPoolForMode, puzzleKey, gameMode);
+    // Archive replays daily puzzle keys by date, so it should use the daily picker.
+    const pickerMode = gameMode === "jam" ? "jam" : "daily";
+    const answer = customMode ? customMovie : pickWeightedMovie(answerPoolForMode, puzzleKey, pickerMode);
     const storagePrefix = customMode
       ? "flickle-custom-state"
       : gameMode === "jam"
         ? "flickle-jam-state"
-        : gameMode === "rewind"
-          ? "flickle-rewind-state"
+        : gameMode === "archive"
+          ? "flickle-archive-state"
           : "flickle-state";
     const storageKey = `${storagePrefix}-${puzzleKey}`;
 
@@ -10840,6 +11148,13 @@
     let activeTypeaheadIndex = -1;
     let typeaheadHideTimer = null;
     let consentChoice = null;
+    const archiveSyncInFlight = new Set();
+    const authState = {
+      checked: false,
+      loading: false,
+      user: null,
+      apiReachable: true
+    };
 
     if (urlParams.get("reset") === "1") {
       storageRemove(storageKey);
@@ -10879,6 +11194,9 @@
     } catch (error) {
       console.error("Flickle shell init failed:", error);
     }
+    refreshAuthState({ silent: true }).catch((error) => {
+      console.warn("Flickle auth init failed:", error);
+    });
     window.addEventListener("resize", syncResultRevealHeight, { passive: true });
     // Defer first paint until the script fully initializes all constants/functions.
     // This avoids refresh-time clue card drops when restoring in-progress games.
@@ -11275,8 +11593,8 @@
         state.won = false;
         state.message = gameMode === "jam"
           ? `Out of guesses. This practice movie was ${answer.title}.`
-          : gameMode === "rewind"
-            ? `Out of guesses. This rewind movie was ${answer.title}.`
+          : gameMode === "archive"
+            ? `Out of guesses. This archive movie was ${answer.title}.`
             : `Out of guesses. Today's movie was ${answer.title}.`;
         trackAnalyticsEvent("lose_game", {
           game_mode: gameMode,
@@ -11291,6 +11609,11 @@
       if (state.finished && !state.scored) {
         applyResultStats();
         state.scored = true;
+      }
+      if (state.finished) {
+        syncArchiveProgressIfNeeded("submit-guess").catch((error) => {
+          console.warn("Flickle archive sync after guess failed:", error);
+        });
       }
 
       renderAll();
@@ -11308,22 +11631,22 @@
         ? `${MAX_GUESSES} guesses, friend challenge. Can you solve it?`
         : gameMode === "jam"
           ? `Practice mode: endless movie practice, 10 guesses each.`
-          : gameMode === "rewind"
-            ? `Rewind mode: yesterday's puzzle, ${MAX_GUESSES} guesses.`
+          : gameMode === "archive"
+            ? `Archive mode: replay a past daily puzzle, ${MAX_GUESSES} guesses.`
             : `Can you find the movie in ${MAX_GUESSES} guesses?`;
       const introModeTag = customMode
         ? "friend challenge"
         : gameMode === "jam"
           ? "practice mode"
-          : gameMode === "rewind"
-            ? "rewind mode"
+          : gameMode === "archive"
+            ? "archive mode"
             : "daily puzzle";
       els.introSubtitle.textContent = introLine;
       els.introModeLink.textContent = introModeTag;
       els.helper.textContent = customMode
         ? "Guess the movie your friend picked."
-        : gameMode === "rewind"
-          ? "Guess the rewind movie."
+        : gameMode === "archive"
+          ? "Guess the archive movie."
           : gameMode === "jam"
             ? "Guess the practice movie."
             : "Guess the movie of the day.";
@@ -11402,8 +11725,8 @@
       if (state.finished) {
         if (customMode) {
           els.guessInput.placeholder = state.won ? "Challenge solved — nice work." : "Challenge complete.";
-        } else if (gameMode === "rewind") {
-          els.guessInput.placeholder = state.won ? "Rewind solved — nice work." : "Rewind complete.";
+        } else if (gameMode === "archive") {
+          els.guessInput.placeholder = state.won ? "Archive solved — nice work." : "Archive complete.";
         } else if (gameMode === "jam") {
           els.guessInput.placeholder = state.won ? "Practice solved — queueing next..." : "Practice complete.";
         } else {
@@ -11961,16 +12284,16 @@
       if (state.won) {
         els.resultLabel.textContent = customMode
           ? "Challenge Solved"
-          : gameMode === "rewind"
-            ? "Rewind Solved"
+          : gameMode === "archive"
+            ? "Archive Solved"
             : gameMode === "jam"
               ? "Practice Solved"
               : "Daily Solved";
       } else {
         els.resultLabel.textContent = customMode
           ? "Challenge Complete"
-          : gameMode === "rewind"
-            ? "Rewind Complete"
+          : gameMode === "archive"
+            ? "Archive Complete"
             : gameMode === "jam"
               ? "Practice Complete"
               : "Daily Complete";
@@ -11993,8 +12316,8 @@
         els.resultEffortTitle.textContent = "Tough Luck...";
         const label = gameMode === "jam"
           ? "This practice movie was"
-          : gameMode === "rewind"
-            ? "This rewind movie was"
+          : gameMode === "archive"
+            ? "This archive movie was"
             : "Today's answer was";
         els.resultEffortBody.textContent = `You used all ${MAX_GUESSES} guesses. ${label} ${answer.title}.`;
         els.resultEffort.classList.remove("hidden");
@@ -13289,7 +13612,7 @@
     function getCurrentPoolLabel() {
       if (customMode) return "this custom puzzle";
       if (gameMode === "jam") return "the practice pool";
-      if (gameMode === "rewind") return "this rewind pool";
+      if (gameMode === "archive") return "this archive day";
       return "today’s Flickle pool";
     }
 
@@ -13477,6 +13800,370 @@
       requestAnimationFrame(() => {
         els.status.classList.add("status-pulse");
       });
+    }
+
+    function resolveApiBaseOrigin(explicitBase) {
+      const candidate = String(explicitBase || "").trim()
+        || String(window.FLICKLE_API_BASE || "").trim();
+      if (candidate) return candidate.replace(/\/+$/, "");
+      if (window.location.protocol === "file:") return "http://127.0.0.1:8787";
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return "http://127.0.0.1:8787";
+      }
+      return window.location.origin;
+    }
+
+    function buildApiUrl(pathname) {
+      const path = String(pathname || "").trim();
+      if (!path.startsWith("/")) {
+        throw new Error(`API path must start with "/": ${path}`);
+      }
+      return `${apiBaseOrigin}${path}`;
+    }
+
+    function buildNavigationSearch(updates = {}, deleteKeys = []) {
+      const params = new URLSearchParams(window.location.search);
+      if (explicitApiBase) {
+        params.set("api", explicitApiBase);
+      }
+      for (const key of deleteKeys) {
+        params.delete(key);
+      }
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === undefined || value === "") {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      }
+      const query = params.toString();
+      return query ? `?${query}` : "";
+    }
+
+    function navigateWithQuery(updates = {}, deleteKeys = []) {
+      location.search = buildNavigationSearch(updates, deleteKeys);
+    }
+
+    function formatArchiveDateLabel(dateKey) {
+      const parsed = parsePuzzleDateKey(dateKey);
+      if (!parsed) return dateKey;
+      return parsed.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function formatArchiveWeekday(dateKey) {
+      const parsed = parsePuzzleDateKey(dateKey);
+      if (!parsed) return "";
+      return parsed.toLocaleDateString(undefined, {
+        weekday: "short"
+      });
+    }
+
+    async function fetchArchiveProgressRange(from, to) {
+      const response = await apiFetch(
+        `/api/archive/progress?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        { method: "GET" }
+      );
+      const data = await safeReadJson(response);
+      if (response.status === 401) return { unauthorized: true, progress: [] };
+      if (!response.ok) {
+        throw new Error((data && data.error) || `Archive load failed (${response.status})`);
+      }
+      return { unauthorized: false, progress: Array.isArray(data && data.progress) ? data.progress : [] };
+    }
+
+    async function safeReadJson(response) {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function apiFetch(pathname, options = {}) {
+      const init = {
+        credentials: "include",
+        ...options
+      };
+      return fetch(buildApiUrl(pathname), init);
+    }
+
+    function isLikelyEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+    }
+
+    function getWorkerDevCommand() {
+      return "cd /Users/jamesmcnicholas/Documents/New project/flickle/workers && npx wrangler dev";
+    }
+
+    function isLocalPreviewRuntime() {
+      return window.location.protocol === "file:"
+        || window.location.hostname === "localhost"
+        || window.location.hostname === "127.0.0.1";
+    }
+
+    function isNetworkFetchError(error) {
+      const text = String(error && error.message ? error.message : error || "").toLowerCase();
+      return text.includes("failed to fetch")
+        || text.includes("networkerror")
+        || text.includes("network request failed")
+        || text.includes("load failed")
+        || text.includes("couldn't connect to server");
+    }
+
+    function buildApiOfflineHelpText() {
+      const target = escapeHtml(apiBaseOrigin);
+      if (isLocalPreviewRuntime()) {
+        const command = escapeHtml(getWorkerDevCommand());
+        return `Account API is offline (${target}). Start it with: ${command}`;
+      }
+      return `Account API is offline (${target}). Check your Worker route/domain + CORS settings.`;
+    }
+
+    function setAuthMenuState() {
+      if (!els.authStatusText || !els.authSignInBtn || !els.authSignOutBtn) return;
+      if (!authState.checked || authState.loading) {
+        els.authStatusText.textContent = "Checking account status...";
+        els.authSignInBtn.disabled = true;
+        els.authSignOutBtn.disabled = true;
+        return;
+      }
+
+      if (!authState.apiReachable) {
+        els.authStatusText.textContent = buildApiOfflineHelpText();
+        els.authSignInBtn.classList.remove("hidden");
+        els.authSignOutBtn.classList.add("hidden");
+        els.authSignInBtn.disabled = false;
+        els.authSignOutBtn.disabled = true;
+        return;
+      }
+
+      els.authSignInBtn.disabled = false;
+      els.authSignOutBtn.disabled = false;
+      if (authState.user && authState.user.email) {
+        els.authStatusText.textContent = `Signed in as ${authState.user.email}. Archive sync is enabled.`;
+        els.authSignInBtn.classList.add("hidden");
+        els.authSignOutBtn.classList.remove("hidden");
+      } else {
+        els.authStatusText.textContent = "Not signed in. Sign in to save daily and archive progress.";
+        els.authSignInBtn.classList.remove("hidden");
+        els.authSignOutBtn.classList.add("hidden");
+      }
+    }
+
+    function getArchivePuzzleDateForSync() {
+      if (customMode) return "";
+      if (gameMode !== "daily" && gameMode !== "archive") return "";
+      return /^\d{4}-\d{2}-\d{2}$/.test(puzzleKey) ? puzzleKey : "";
+    }
+
+    function getArchiveSyncStorageKey(puzzleDate) {
+      return `${ARCHIVE_SYNC_KEY_PREFIX}-${puzzleDate}`;
+    }
+
+    function loadArchiveSyncMarker(puzzleDate) {
+      const raw = storageGet(getArchiveSyncStorageKey(puzzleDate));
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+        return parsed;
+      } catch {
+        storageRemove(getArchiveSyncStorageKey(puzzleDate));
+        return null;
+      }
+    }
+
+    function saveArchiveSyncMarker(puzzleDate, payload) {
+      storageSet(getArchiveSyncStorageKey(puzzleDate), JSON.stringify({
+        status: payload.status,
+        guesses_used: payload.guesses_used,
+        synced_at: new Date().toISOString()
+      }));
+    }
+
+    function buildArchiveProgressPayload() {
+      const puzzleDate = getArchivePuzzleDateForSync();
+      if (!puzzleDate || !state.finished) return null;
+      const guessesUsed = Math.min(MAX_GUESSES, Math.max(1, Number(state.guesses.length) || MAX_GUESSES));
+      return {
+        puzzle_date: puzzleDate,
+        status: state.won ? "won" : "lost",
+        guesses_used: guessesUsed
+      };
+    }
+
+    async function syncArchiveProgressIfNeeded(reason = "runtime") {
+      const payload = buildArchiveProgressPayload();
+      if (!payload) return;
+      if (!authState.user || !authState.user.id) return;
+
+      const previous = loadArchiveSyncMarker(payload.puzzle_date);
+      if (
+        previous
+        && previous.status === payload.status
+        && Number(previous.guesses_used) === Number(payload.guesses_used)
+      ) {
+        return;
+      }
+
+      const inFlightKey = `${payload.puzzle_date}|${payload.status}|${payload.guesses_used}`;
+      if (archiveSyncInFlight.has(inFlightKey)) return;
+      archiveSyncInFlight.add(inFlightKey);
+
+      try {
+        const response = await apiFetch("/api/archive/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await safeReadJson(response);
+        if (!response.ok) {
+          throw new Error((data && data.error) || `Archive sync failed (${response.status})`);
+        }
+        saveArchiveSyncMarker(payload.puzzle_date, payload);
+      } catch (error) {
+        console.warn(`Flickle archive sync skipped (${reason}):`, error);
+      } finally {
+        archiveSyncInFlight.delete(inFlightKey);
+      }
+    }
+
+    async function refreshAuthState(options = {}) {
+      const { silent = false } = options;
+      if (authState.loading) return authState.user;
+      authState.loading = true;
+      if (!silent) {
+        authState.checked = false;
+      }
+      setAuthMenuState();
+
+      try {
+        const response = await apiFetch("/api/me", { method: "GET" });
+        const data = await safeReadJson(response);
+        authState.apiReachable = true;
+        if (response.status === 401) {
+          authState.user = null;
+        } else if (!response.ok) {
+          throw new Error((data && data.error) || `Auth check failed (${response.status})`);
+        } else {
+          authState.user = data && data.user ? data.user : null;
+        }
+      } catch (error) {
+        console.warn("Flickle auth state check failed:", error);
+        authState.user = null;
+        if (isNetworkFetchError(error)) {
+          authState.apiReachable = false;
+        }
+      } finally {
+        authState.checked = true;
+        authState.loading = false;
+        setAuthMenuState();
+      }
+
+      if (authState.user) {
+        syncArchiveProgressIfNeeded("auth-refresh").catch((error) => {
+          console.warn("Flickle archive sync on auth refresh failed:", error);
+        });
+      }
+      return authState.user;
+    }
+
+    async function requestMagicLink(email) {
+      const response = await apiFetch("/api/auth/request-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await safeReadJson(response);
+      if (!response.ok) {
+        throw new Error((data && data.error) || `Sign-in request failed (${response.status})`);
+      }
+      return data || {};
+    }
+
+    function showSignInModal() {
+      const body = `
+        <div class="howto">
+          <section class="howto-section">
+            <h3 class="howto-heading">Sign In</h3>
+            <p class="howto-text">Enter your email to receive a magic sign-in link.</p>
+          </section>
+          <section class="howto-section">
+            <input id="auth-email-input" class="modal-input" type="email" placeholder="you@example.com" autocomplete="email" />
+            <div class="modal-actions">
+              <button id="auth-send-link-btn" class="modal-btn" type="button">Send Sign-In Link</button>
+            </div>
+            <p id="auth-modal-status" class="howto-mini"></p>
+          </section>
+        </div>
+      `;
+      showModal("Account Sign In", body, true);
+
+      const emailInput = document.getElementById("auth-email-input");
+      const sendBtn = document.getElementById("auth-send-link-btn");
+      const statusEl = document.getElementById("auth-modal-status");
+      if (!emailInput || !sendBtn || !statusEl) return;
+
+      const updateStatus = (text, allowHtml = false) => {
+        if (allowHtml) statusEl.innerHTML = text;
+        else statusEl.textContent = text;
+      };
+
+      const send = async () => {
+        const email = String(emailInput.value || "").trim().toLowerCase();
+        if (!isLikelyEmail(email)) {
+          updateStatus("Enter a valid email address.");
+          return;
+        }
+
+        sendBtn.disabled = true;
+        updateStatus("Sending sign-in link...");
+        try {
+          const payload = await requestMagicLink(email);
+          authState.apiReachable = true;
+          setAuthMenuState();
+          updateStatus("If that email exists, a sign-in link has been generated.");
+          if (payload && payload.dev_magic_link) {
+            const safeLink = escapeHtml(payload.dev_magic_link);
+            updateStatus(`Dev link: <a href="${safeLink}" target="_blank" rel="noopener noreferrer">${safeLink}</a>`, true);
+          }
+        } catch (error) {
+          if (isNetworkFetchError(error)) {
+            authState.apiReachable = false;
+            setAuthMenuState();
+            updateStatus(buildApiOfflineHelpText());
+          } else {
+            updateStatus(`Could not send sign-in link: ${escapeHtml(error.message || String(error))}`);
+          }
+        } finally {
+          sendBtn.disabled = false;
+        }
+      };
+
+      sendBtn.addEventListener("click", send);
+      emailInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          send();
+        }
+      });
+      emailInput.focus();
+    }
+
+    async function signOutAccount() {
+      const response = await apiFetch("/api/auth/logout", { method: "POST" });
+      const data = await safeReadJson(response);
+      if (!response.ok) {
+        throw new Error((data && data.error) || `Sign-out failed (${response.status})`);
+      }
+      authState.user = null;
+      authState.checked = true;
+      authState.loading = false;
+      setAuthMenuState();
     }
 
     function trackAnalyticsEvent(name, params = {}) {
@@ -13799,8 +14486,8 @@
         if (gameMode === "jam") {
           return `Practice solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
         }
-        if (gameMode === "rewind") {
-          return `Rewind solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+        if (gameMode === "archive") {
+          return `Archive solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
         }
         return `Already solved today. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
       }
@@ -13810,8 +14497,8 @@
       if (gameMode === "jam") {
         return `Practice complete. Tough luck — the answer was ${answer.title}.`;
       }
-      if (gameMode === "rewind") {
-        return `Rewind complete. Tough luck — the answer was ${answer.title}.`;
+      if (gameMode === "archive") {
+        return `Archive complete. Tough luck — the answer was ${answer.title}.`;
       }
       return `Daily Flickle complete. Tough luck — today's movie was ${answer.title}.`;
     }
@@ -13932,25 +14619,26 @@
         showTermsModal();
       }, "menu-terms");
       bind(els.modeDaily, "click", () => {
-        location.search = "";
+        navigateWithQuery({ mode: null, date: null, seed: null }, ["mode", "date", "seed"]);
       }, "mode-daily");
-      bind(els.modeRewind, "click", () => {
-        location.search = "?mode=rewind";
-      }, "mode-rewind");
-      bind(els.modeJam, "click", () => {
-        const rememberedSeed = (storageGet(PRACTICE_LAST_SEED_KEY) || "").trim();
-        const rememberedProgress = readPracticeProgress(rememberedSeed);
-        const inProgress = rememberedProgress.inProgress || storageGet(PRACTICE_IN_PROGRESS_KEY) === "1";
-        const seed = (inProgress && rememberedSeed)
-          ? rememberedSeed
-          : `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-        storageSet(PRACTICE_LAST_SEED_KEY, seed);
-        storageSet(PRACTICE_IN_PROGRESS_KEY, "1");
-        location.search = `?mode=jam&seed=${encodeURIComponent(seed)}`;
-      }, "mode-jam");
+      bind(els.modeArchive, "click", () => {
+        showArchiveModal();
+      }, "mode-archive");
       bind(els.modeCreate, "click", () => {
         showCreateModal();
       }, "mode-create");
+      bind(els.authSignInBtn, "click", () => {
+        showSignInModal();
+      }, "auth-signin-btn");
+      bind(els.authSignOutBtn, "click", async () => {
+        try {
+          await signOutAccount();
+          setStatus("Signed out.", "success");
+          closeModal();
+        } catch (error) {
+          setStatus(`Sign out failed: ${error.message || String(error)}`, "error");
+        }
+      }, "auth-signout-btn");
 
       bind(els.modalOverlay, "click", (event) => {
         if (event.target === els.modalOverlay) closeModal();
@@ -14048,7 +14736,7 @@
               <li>Use genre, rating, country, language, and franchise to tighten your search.</li>
             </ul>
           </section>
-          <p class="howto-mini">Daily mode counts toward streaks. Practice/Create are for testing and fun.</p>
+          <p class="howto-mini">Daily mode counts toward streaks. Archive lets you replay past dailies, and Create is for friend challenges.</p>
         </div>`,
         true
       );
@@ -14075,8 +14763,7 @@
             <h3 class="howto-heading">Modes</h3>
             <ul class="howto-list">
               <li><strong>Daily:</strong> one official puzzle each day.</li>
-              <li><strong>Rewind:</strong> play yesterday's daily puzzle.</li>
-              <li><strong>Practice:</strong> endless seeded puzzles.</li>
+              <li><strong>Archive:</strong> replay past daily puzzles by date.</li>
               <li><strong>Create:</strong> make a custom challenge link for friends.</li>
             </ul>
           </section>
@@ -14103,7 +14790,7 @@
             <h3 class="howto-heading">What Helps Most</h3>
             <ul class="howto-list">
               <li>Exact movie title and year you tried.</li>
-              <li>Game mode (Daily, Rewind, Practice, or Create).</li>
+              <li>Game mode (Daily, Archive, or Create).</li>
               <li>A screenshot and what you expected to happen.</li>
             </ul>
           </section>
@@ -14122,7 +14809,7 @@
           </section>
           <section class="howto-section">
             <h3 class="howto-heading">Accounts</h3>
-            <p class="howto-text">Flickle currently does not require user logins and does not provide server-side player accounts.</p>
+            <p class="howto-text">Flickle can optionally support account sign-in for features like archive progress syncing. Playing without an account remains available.</p>
           </section>
           <section class="howto-section">
             <h3 class="howto-heading">Cookies and Advertising</h3>
@@ -14350,6 +15037,132 @@
         } catch {
           output.textContent = "Copy failed. Manual link: " + latestLink;
         }
+      });
+    }
+
+    async function showArchiveModal() {
+      closeMenu();
+      const days = 45;
+      const today = buildPuzzleDate(new Date(), 0);
+      const dateKeys = [];
+      for (let i = 1; i <= days; i += 1) {
+        dateKeys.push(formatPuzzleKey(buildPuzzleDate(today, -i)));
+      }
+      if (!dateKeys.length) return;
+
+      let progressByDate = new Map();
+      let progressHelpText = "Sign in to see played/unplayed colors.";
+
+      if (authState.user && authState.user.id) {
+        progressHelpText = "Loading your archive progress...";
+        try {
+          const from = dateKeys[dateKeys.length - 1];
+          const to = dateKeys[0];
+          const result = await fetchArchiveProgressRange(from, to);
+          if (!result.unauthorized) {
+            progressByDate = new Map(
+              result.progress
+                .filter((row) => row && typeof row.puzzle_date === "string")
+                .map((row) => [row.puzzle_date, row])
+            );
+            progressHelpText = "Green = completed, yellow = in progress, gray = unplayed.";
+          } else {
+            progressHelpText = "Sign in to show archive progress states.";
+          }
+        } catch (error) {
+          progressHelpText = `Could not load archive progress: ${escapeHtml(error.message || String(error))}`;
+        }
+      }
+
+      const rowsHtml = dateKeys.map((dateKey, index) => {
+        const row = progressByDate.get(dateKey);
+        const isWon = row && row.status === "won";
+        const isLost = row && row.status === "lost";
+        const isStarted = row && row.status === "started";
+        const perfect = isWon && Number(row.guesses_used) === 1;
+        const statusText = isStarted
+          ? "In progress"
+          : (isWon || isLost)
+            ? "Completed"
+            : "Unplayed";
+        const stateClass = perfect
+          ? "state-won state-perfect"
+          : isWon
+            ? "state-won"
+            : isLost
+              ? "state-lost"
+              : isStarted
+                ? "state-started"
+                : "state-unplayed";
+        const weekdayLabel = formatArchiveWeekday(dateKey);
+        const dayStamp = weekdayLabel ? weekdayLabel.toUpperCase() : "DAY";
+        return `
+          <button class="archive-card archive-date-btn ${stateClass}" type="button" data-archive-date="${escapeHtml(dateKey)}">
+            <div class="archive-card-art">
+              <span class="archive-card-art-mark">${escapeHtml(dayStamp)}</span>
+              <span class="archive-card-status">${escapeHtml(statusText)}</span>
+              <span class="archive-card-art-meta">${escapeHtml(`${index + 1} ${index === 0 ? "day" : "days"} ago`)}</span>
+              <span class="archive-card-date">${escapeHtml(formatArchiveDateLabel(dateKey))}</span>
+            </div>
+            <div>
+              <div class="archive-card-sub">Daily puzzle</div>
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      const playedCount = dateKeys.reduce((total, dateKey) => {
+        const row = progressByDate.get(dateKey);
+        return total + (row ? 1 : 0);
+      }, 0);
+      const wonCount = dateKeys.reduce((total, dateKey) => {
+        const row = progressByDate.get(dateKey);
+        return total + (row && row.status === "won" ? 1 : 0);
+      }, 0);
+      const perfectCount = dateKeys.reduce((total, dateKey) => {
+        const row = progressByDate.get(dateKey);
+        return total + (row && row.status === "won" && Number(row.guesses_used) === 1 ? 1 : 0);
+      }, 0);
+      const completionPct = dateKeys.length ? Math.round((playedCount / dateKeys.length) * 100) : 0;
+      const progressHtml = authState.user
+        ? `
+          <div class="archive-progress" aria-label="Archive progress summary">
+            <div class="archive-progress-row">
+              <span class="archive-progress-title">Archive Progress</span>
+              <span class="archive-progress-values">
+                <span>Played <strong>${playedCount}/${dateKeys.length}</strong></span>
+                <span>Won <strong>${wonCount}</strong></span>
+                <span>Perfect <strong>${perfectCount}</strong></span>
+                <span>Complete <strong>${completionPct}%</strong></span>
+              </span>
+            </div>
+            <div class="archive-progress-bar"><div class="archive-progress-fill" style="width:${completionPct}%"></div></div>
+          </div>
+        `
+        : "";
+
+      const body = `
+        <div class="howto">
+          <section class="howto-section">
+            <h3 class="howto-heading">Archive</h3>
+            <p class="howto-text">Missed a day? Explore Flickle's movie vault and replay any previous puzzle.</p>
+            <p class="howto-mini">${progressHelpText}</p>
+            ${progressHtml}
+          </section>
+          <section class="howto-section">
+            <div class="archive-grid">${rowsHtml}</div>
+          </section>
+        </div>
+      `;
+      showModal("Archive", body, true);
+
+      const dateButtons = Array.from(document.querySelectorAll("[data-archive-date]"));
+      dateButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const dateKey = String(button.getAttribute("data-archive-date") || "").trim();
+          if (!dateKey) return;
+          navigateWithQuery({ mode: "archive", date: dateKey, seed: null }, ["seed"]);
+        });
       });
     }
 
