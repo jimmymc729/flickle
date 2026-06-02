@@ -2665,6 +2665,7 @@
     const PRACTICE_LAST_SEED_KEY = "flickle-practice-last-seed";
     const PRACTICE_IN_PROGRESS_KEY = "flickle-practice-in-progress";
     const ARCHIVE_SYNC_KEY_PREFIX = "flickle-archive-sync-v2";
+    const STATS_SYNC_KEY_PREFIX = "flickle-stats-sync-v1";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const UI_SOUND_TYPES = Object.freeze(["start", "guess", "share", "win", "lose", "error", "toggle-on", "hint-ready"]);
     const storageFallback = {};
@@ -11288,7 +11289,12 @@
     authInitPromise.catch((error) => {
       console.warn("Flickle auth init failed:", error);
     });
-    authInitPromise.then(() => {
+    authInitPromise.then(async () => {
+      try {
+        await hydrateUserStatsFromServer();
+      } catch (error) {
+        console.warn("Flickle signed-in stats hydrate failed:", error);
+      }
       hydrateSignedInPuzzleStateFromServer().catch((error) => {
         console.warn("Flickle signed-in progress hydrate failed:", error);
       });
@@ -14349,6 +14355,132 @@ function resolveApiBaseOrigin(explicitBase) {
       return data || {};
     }
 
+    async function fetchUserStats() {
+      const response = await apiFetch("/api/stats", { method: "GET" });
+      const data = await safeReadJson(response);
+      if (response.status === 401) return { unauthorized: true, stats: null };
+      if (!response.ok) {
+        throw new Error((data && data.error) || `Stats load failed (${response.status})`);
+      }
+      return { unauthorized: false, stats: data && data.stats ? data.stats : null };
+    }
+
+    function getStatsSyncStorageKey() {
+      const userId = authState && authState.user && authState.user.id
+        ? String(authState.user.id).trim()
+        : "anonymous";
+      const apiScope = String(apiBaseOrigin || window.location.origin || "").trim().replace(/\/+$/, "");
+      return `${STATS_SYNC_KEY_PREFIX}-${userId}-${apiScope}`;
+    }
+
+    function loadStatsSyncMarker() {
+      return String(storageGet(getStatsSyncStorageKey()) || "").trim();
+    }
+
+    function saveStatsSyncMarker(updatedAt) {
+      if (!updatedAt) return;
+      storageSet(getStatsSyncStorageKey(), String(updatedAt));
+    }
+
+    function buildSyncableStatsPayload(stats) {
+      return {
+        dailyStreak: Math.max(0, Number(stats.dailyStreak) || 0),
+        bestDailyStreak: Math.max(0, Number(stats.bestDailyStreak) || 0),
+        winStreak: Math.max(0, Number(stats.winStreak) || 0),
+        bestWinStreak: Math.max(0, Number(stats.bestWinStreak) || 0),
+        lastDailyPlayedKey: typeof stats.lastDailyPlayedKey === "string" ? stats.lastDailyPlayedKey : null,
+        lastDailyWinKey: typeof stats.lastDailyWinKey === "string" ? stats.lastDailyWinKey : null,
+        updatedAt: typeof stats.updatedAt === "string" ? stats.updatedAt : null
+      };
+    }
+
+    function getStatsUpdatedAtMs(stats) {
+      const text = stats && typeof stats.updatedAt === "string" ? stats.updatedAt : "";
+      const ms = Date.parse(text);
+      return Number.isFinite(ms) ? ms : 0;
+    }
+
+    function mergeSyncedStats(localStats, remoteStats) {
+      if (!remoteStats) return localStats;
+      const localMs = getStatsUpdatedAtMs(localStats);
+      const remoteMs = getStatsUpdatedAtMs(remoteStats);
+      const preferRemote = remoteMs > localMs;
+      return {
+        ...localStats,
+        dailyStreak: preferRemote ? Math.max(0, Number(remoteStats.dailyStreak) || 0) : Math.max(0, Number(localStats.dailyStreak) || 0),
+        bestDailyStreak: Math.max(
+          Math.max(0, Number(localStats.bestDailyStreak) || 0),
+          Math.max(0, Number(remoteStats.bestDailyStreak) || 0)
+        ),
+        winStreak: preferRemote ? Math.max(0, Number(remoteStats.winStreak) || 0) : Math.max(0, Number(localStats.winStreak) || 0),
+        bestWinStreak: Math.max(
+          Math.max(0, Number(localStats.bestWinStreak) || 0),
+          Math.max(0, Number(remoteStats.bestWinStreak) || 0)
+        ),
+        lastDailyPlayedKey: preferRemote
+          ? (typeof remoteStats.lastDailyPlayedKey === "string" ? remoteStats.lastDailyPlayedKey : null)
+          : (typeof localStats.lastDailyPlayedKey === "string" ? localStats.lastDailyPlayedKey : null),
+        lastDailyWinKey: preferRemote
+          ? (typeof remoteStats.lastDailyWinKey === "string" ? remoteStats.lastDailyWinKey : null)
+          : (typeof localStats.lastDailyWinKey === "string" ? localStats.lastDailyWinKey : null),
+        updatedAt: preferRemote
+          ? (typeof remoteStats.updatedAt === "string" ? remoteStats.updatedAt : localStats.updatedAt)
+          : localStats.updatedAt
+      };
+    }
+
+    async function syncUserStatsIfNeeded(reason = "runtime") {
+      if (!authState.user || !authState.user.id) return;
+      const stats = loadStats();
+      const payload = buildSyncableStatsPayload(stats);
+      if (!payload.updatedAt) return;
+      if (loadStatsSyncMarker() === payload.updatedAt) return;
+
+      try {
+        const response = await apiFetch("/api/stats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await safeReadJson(response);
+        if (!response.ok) {
+          throw new Error((data && data.error) || `Stats sync failed (${response.status})`);
+        }
+        saveStatsSyncMarker(payload.updatedAt);
+      } catch (error) {
+        console.warn(`Flickle stats sync skipped (${reason}):`, error);
+      }
+    }
+
+    async function hydrateUserStatsFromServer() {
+      const user = authState.user || await refreshAuthState({ silent: true });
+      if (!user || !user.id) return;
+
+      const localStats = loadStats();
+      const result = await fetchUserStats();
+      if (result.unauthorized) return;
+
+      const remoteStats = result.stats;
+      if (!remoteStats) {
+        if (!getStatsUpdatedAtMs(localStats)) {
+          persistStats(localStats);
+        }
+        await syncUserStatsIfNeeded("stats-bootstrap");
+        return;
+      }
+
+      const localMs = getStatsUpdatedAtMs(localStats);
+      const remoteMs = getStatsUpdatedAtMs(remoteStats);
+      const merged = mergeSyncedStats(localStats, remoteStats);
+      persistStats(merged, { touch: false });
+
+      if (localMs >= remoteMs) {
+        await syncUserStatsIfNeeded("stats-local-preferred");
+      } else {
+        saveStatsSyncMarker(typeof remoteStats.updatedAt === "string" ? remoteStats.updatedAt : "");
+      }
+    }
+
     function showSignInModal() {
       const body = `
         <div class="howto">
@@ -15502,7 +15634,8 @@ function resolveApiBaseOrigin(explicitBase) {
         bestGuess: null,
         lastSolvedKey: null,
         lastDailyPlayedKey: null,
-        lastDailyWinKey: null
+        lastDailyWinKey: null,
+        updatedAt: ""
       };
       const raw = storageGet(STATS_KEY);
       if (!raw) return { ...defaults };
@@ -15526,7 +15659,8 @@ function resolveApiBaseOrigin(explicitBase) {
           lastDailyPlayedKey: typeof parsed.lastDailyPlayedKey === "string" ? parsed.lastDailyPlayedKey : null,
           lastDailyWinKey: typeof parsed.lastDailyWinKey === "string"
             ? parsed.lastDailyWinKey
-            : (typeof parsed.lastSolvedKey === "string" ? parsed.lastSolvedKey : null)
+            : (typeof parsed.lastSolvedKey === "string" ? parsed.lastSolvedKey : null),
+          updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : ""
         };
       } catch {
         storageRemove(STATS_KEY);
@@ -15534,23 +15668,37 @@ function resolveApiBaseOrigin(explicitBase) {
       }
     }
 
-    function persistStats(value) {
-      storageSet(STATS_KEY, JSON.stringify(value));
+    function persistStats(value, options = {}) {
+      const { touch = true } = options;
+      const next = {
+        ...value,
+        updatedAt: touch
+          ? new Date().toISOString()
+          : (typeof value.updatedAt === "string" ? value.updatedAt : new Date().toISOString())
+      };
+      storageSet(STATS_KEY, JSON.stringify(next));
+      return next;
     }
 
     function applyResultStats() {
       if (customMode) return;
       const stats = loadStats();
-      stats.played += 1;
-      if (gameMode === "daily" && stats.lastDailyPlayedKey !== puzzleKey) {
+      const alreadyCountedDailyPlay = gameMode === "daily" && stats.lastDailyPlayedKey === puzzleKey;
+      const alreadyCountedDailyWin = gameMode === "daily" && stats.lastDailyWinKey === puzzleKey;
+      if (!(gameMode === "daily" && alreadyCountedDailyPlay)) {
+        stats.played += 1;
+      }
+      if (gameMode === "daily" && !alreadyCountedDailyPlay) {
         stats.dailyStreak = isPreviousDayKey(stats.lastDailyPlayedKey, puzzleKey)
           ? stats.dailyStreak + 1
           : 1;
         stats.lastDailyPlayedKey = puzzleKey;
       }
       if (state.won) {
-        stats.wins += 1;
-        if (gameMode === "daily" && stats.lastDailyWinKey !== puzzleKey) {
+        if (!(gameMode === "daily" && alreadyCountedDailyWin)) {
+          stats.wins += 1;
+        }
+        if (gameMode === "daily" && !alreadyCountedDailyWin) {
           stats.winStreak = isPreviousDayKey(stats.lastDailyWinKey, puzzleKey)
             ? stats.winStreak + 1
             : 1;
@@ -15565,7 +15713,11 @@ function resolveApiBaseOrigin(explicitBase) {
       }
       stats.bestDailyStreak = Math.max(stats.bestDailyStreak, stats.dailyStreak);
       stats.bestWinStreak = Math.max(stats.bestWinStreak, stats.winStreak);
-      persistStats(stats);
+      const persistedStats = persistStats(stats);
+      syncUserStatsIfNeeded("result-stats").catch((error) => {
+        console.warn("Flickle stats sync after result failed:", error);
+      });
+      return persistedStats;
     }
 
     function isPreviousDayKey(previousKey, currentKey) {
