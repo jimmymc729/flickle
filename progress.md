@@ -83,6 +83,6 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - Completed cards were fixed, but in-progress cards could still appear gray when the archive modal was opened before the backend `started` row had been read back.
   - Added local archive-progress fallback in `index.html`:
     - reads `flickle-archive-state-<date>` and `flickle-state-<date>`
-    - derives `started` / `won` / `lost` from saved local puzzle state
-    - merges local state with server rows, preferring the more advanced status
+    - now only derives local `started` state from saved in-progress puzzle state
+    - no longer derives local completed states, because green should stay server-driven
   - Added archive-modal repair sync so when local state proves a date is in progress/completed and the server row is missing/weaker, the modal quietly retries the POST.

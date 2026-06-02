@@ -14040,13 +14040,11 @@ function resolveApiBaseOrigin(explicitBase) {
         const started = Boolean(parsed.started) || guessCount > 0;
         const finished = Boolean(parsed.finished);
         if (!started && !finished) return null;
-
-        const status = finished ? (parsed.won ? "won" : "lost") : "started";
-        if (!["started", "won", "lost"].includes(status)) return null;
+        if (finished) return null;
 
         return {
           puzzle_date: puzzleDate,
-          status,
+          status: "started",
           guesses_used: Math.max(1, guessCount || 1),
           localOnly: true
         };
