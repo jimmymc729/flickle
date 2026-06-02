@@ -95,3 +95,15 @@ Original prompt: i think the problem might still exist on mobile, can you check 
     - archive card clicks now pass `archiveStatus` and `archiveGuesses` in the destination query for completed dates
     - archive page init applies that completed state immediately, before any async auth/progress refetch can race
     - completed-card opens also clear stale local replay guesses so the read-only result is authoritative
+  - Archive guess-history restore upgrade:
+    - Worker now stores `guesses_json` alongside archive progress rows and returns parsed `guesses` in `GET /api/archive/progress`
+    - Added D1 migration `workers/migrations/0002_archive_progress_guesses.sql`
+    - Frontend archive sync now sends the actual guess list, not just `status` + `guesses_used`
+    - Completed archive opens now hydrate full guess history from the backend when available, so they can render the completed board like daily games
+    - Archive completed results now allow the same Flickle Fact flip behavior as daily results
+    - For older completed rows with no saved guess history, archive hydrate now falls back to one synthetic solved answer card while preserving the real remote `guesses_used` count in the header/result text
+  - Deployment note:
+    - This feature needs both the updated frontend and the new Worker migration deployed together; without the migration, older archive rows will still lack guess history and cannot be reconstructed perfectly.
+  - iPhone archive modal layout fix:
+    - constrained modal height to the viewport and allowed modal/body scrolling on small screens
+    - changed archive cards on <=560px from tall poster-ratio blocks to shorter fixed-height cards so status/date text stays visible on iPhone Safari

@@ -218,7 +218,7 @@ async function getArchiveProgress(request, env) {
 
   const { results } = await env.DB
     .prepare(`
-      SELECT puzzle_date, status, guesses_used, completed_at, updated_at
+      SELECT puzzle_date, status, guesses_used, guesses_json, completed_at, updated_at
       FROM archive_progress
       WHERE user_id = ? AND puzzle_date >= ? AND puzzle_date <= ?
       ORDER BY puzzle_date ASC
@@ -226,7 +226,14 @@ async function getArchiveProgress(request, env) {
     .bind(user.id, from, to)
     .all();
 
-  return json({ progress: results || [] });
+  const progress = Array.isArray(results)
+    ? results.map((row) => ({
+        ...row,
+        guesses: parseArchiveGuesses(row?.guesses_json)
+      }))
+    : [];
+
+  return json({ progress });
 }
 
 async function upsertArchiveProgress(request, env) {
@@ -238,6 +245,7 @@ async function upsertArchiveProgress(request, env) {
   const puzzleDate = String(body?.puzzle_date || "").trim();
   const status = String(body?.status || "").trim();
   const guessesUsedRaw = body?.guesses_used;
+  const guesses = normalizeArchiveGuesses(body?.guesses);
 
   if (!isIsoDate(puzzleDate)) return json({ error: "puzzle_date must be YYYY-MM-DD" }, 400);
   if (!["started", "won", "lost"].includes(status)) {
@@ -255,18 +263,20 @@ async function upsertArchiveProgress(request, env) {
 
   const nowIso = new Date().toISOString();
   const completedAt = status === "started" ? null : nowIso;
+  const guessesJson = guesses.length ? JSON.stringify(guesses) : null;
 
   await env.DB
     .prepare(`
-      INSERT INTO archive_progress (user_id, puzzle_date, status, guesses_used, completed_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO archive_progress (user_id, puzzle_date, status, guesses_used, guesses_json, completed_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(user_id, puzzle_date) DO UPDATE SET
         status = excluded.status,
         guesses_used = excluded.guesses_used,
+        guesses_json = excluded.guesses_json,
         completed_at = excluded.completed_at,
         updated_at = excluded.updated_at
     `)
-    .bind(user.id, puzzleDate, status, guessesUsed, completedAt, nowIso)
+    .bind(user.id, puzzleDate, status, guessesUsed, guessesJson, completedAt, nowIso)
     .run();
 
   return json({ ok: true });
@@ -329,6 +339,32 @@ async function requireUser(request, env) {
     id: session.user_id,
     email: session.email
   };
+}
+
+function normalizeArchiveGuesses(value) {
+  if (!Array.isArray(value)) return [];
+
+  const guesses = value
+    .map((guess) => {
+      if (!guess || typeof guess !== "object") return null;
+      const title = String(guess.title || "").trim();
+      const year = Number(guess.year);
+      if (!title || !Number.isInteger(year)) return null;
+      return { title, year };
+    })
+    .filter(Boolean)
+    .slice(0, 10);
+
+  return guesses;
+}
+
+function parseArchiveGuesses(raw) {
+  if (!raw) return [];
+  try {
+    return normalizeArchiveGuesses(JSON.parse(raw));
+  } catch {
+    return [];
+  }
 }
 
 function buildSessionCookie(sessionId, ttlDays, env) {

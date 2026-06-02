@@ -273,12 +273,14 @@
     }
     .modal {
       width: min(460px, 100%);
+      max-height: calc(100dvh - 24px);
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: #111622;
       color: #e8edf8;
       padding: 14px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      overflow: auto;
     }
     .modal-head {
       display: flex;
@@ -427,6 +429,8 @@
       gap: 12px;
       max-height: 420px;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       padding: 2px 4px 2px 2px;
     }
     .archive-card {
@@ -695,20 +699,52 @@
       transition: width 0.22s ease;
     }
     @media (max-width: 560px) {
+      .modal-overlay {
+        align-items: start;
+        overflow: auto;
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      .modal {
+        width: min(420px, 100%);
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+      }
       .archive-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        max-height: min(42dvh, 340px);
       }
       .archive-card {
-        padding: 10px 15px 9px;
+        aspect-ratio: auto;
+        height: 172px;
+        min-height: 172px;
+        padding: 9px 13px 8px;
       }
       .archive-card-art {
-        min-height: 94px;
+        min-height: 0;
+      }
+      .archive-card-art-mark {
+        left: 8px;
+        top: 8px;
+        font-size: 1.05rem;
+      }
+      .archive-card-status {
+        padding: 4px 9px;
+        font-size: 0.66rem;
       }
       .archive-card-date {
-        font-size: 0.93rem;
+        left: 8px;
+        right: 8px;
+        bottom: 24px;
+        font-size: 0.82rem;
+      }
+      .archive-card-art-meta {
+        left: 8px;
+        bottom: 8px;
+        font-size: 0.55rem;
       }
       .archive-card-sub {
-        font-size: 0.74rem;
+        font-size: 0.68rem;
       }
       .archive-progress-values {
         gap: 7px 8px;
@@ -11127,7 +11163,9 @@
       hintsUsed: 0,
       revealedHintCast: [],
       readOnlyArchiveCompletion: false,
-      remoteArchiveGuessesUsed: 0
+      remoteArchiveGuessesUsed: 0,
+      archiveHydratedFromServer: false,
+      syntheticArchiveGuessFallback: false
     };
     let nextDailyCountdownTimer = null;
     let winRevealHoldUntil = 0;
@@ -11220,7 +11258,7 @@
       console.warn("Flickle auth init failed:", error);
     });
     authInitPromise.then(() => {
-      hydrateArchiveReadOnlyCompletionFromServer().catch((error) => {
+      hydrateArchiveStateFromServer().catch((error) => {
         console.warn("Flickle archive completion hydrate failed:", error);
       });
     });
@@ -11253,15 +11291,19 @@
     }
 
     function getFinishedGuessCount() {
+      if (state.syntheticArchiveGuessFallback) {
+        const remoteGuesses = Number(state.remoteArchiveGuessesUsed) || 0;
+        return Math.max(0, Math.min(MAX_GUESSES, remoteGuesses));
+      }
       const localGuesses = Number(state.guesses.length) || 0;
       if (localGuesses > 0) return localGuesses;
       const remoteGuesses = Number(state.remoteArchiveGuessesUsed) || 0;
       return Math.max(0, Math.min(MAX_GUESSES, remoteGuesses));
     }
 
-    async function hydrateArchiveReadOnlyCompletionFromServer() {
+    async function hydrateArchiveStateFromServer() {
       if (gameMode !== "archive") return;
-      if (state.finished || state.guesses.length > 0) return;
+      if (state.guesses.length > 0 && !state.readOnlyArchiveCompletion) return;
 
       const user = await refreshAuthState({ silent: true });
       if (!user || !user.id) return;
@@ -11269,16 +11311,30 @@
       const result = await fetchArchiveProgressRange(puzzleKey, puzzleKey);
       if (result.unauthorized) return;
       const row = Array.isArray(result.progress) ? result.progress[0] : null;
-      if (!row || (row.status !== "won" && row.status !== "lost")) return;
+      if (!row || !["started", "won", "lost"].includes(String(row.status || ""))) return;
 
-      state.started = true;
-      state.finished = true;
+      const restoredGuesses = Array.isArray(row.guesses)
+        ? row.guesses.map(resolveMovieReference).filter(Boolean).slice(0, MAX_GUESSES)
+        : [];
+      const needsSyntheticSolvedCard = (row.status === "won" || row.status === "lost") && restoredGuesses.length === 0;
+
+      state.guesses = needsSyntheticSolvedCard ? [answer] : restoredGuesses;
+      state.started = state.guesses.length > 0 || row.status === "won" || row.status === "lost";
+      state.finished = row.status === "won" || row.status === "lost";
       state.won = row.status === "won";
-      state.scored = true;
-      state.readOnlyArchiveCompletion = true;
-      state.remoteArchiveGuessesUsed = Math.max(0, Math.min(MAX_GUESSES, Number(row.guesses_used) || 0));
-      state.message = buildCompletionStatusMessage();
+      state.scored = state.finished;
+      state.readOnlyArchiveCompletion = state.finished;
+      state.syntheticArchiveGuessFallback = needsSyntheticSolvedCard;
+      state.remoteArchiveGuessesUsed = Math.max(
+        restoredGuesses.length,
+        Math.max(0, Math.min(MAX_GUESSES, Number(row.guesses_used) || 0))
+      );
+      state.archiveHydratedFromServer = true;
+      state.message = state.finished
+        ? buildCompletionStatusMessage()
+        : `${MAX_GUESSES - state.guesses.length} guesses left.`;
       renderAll();
+      persistState();
     }
 
     function bindCoreInteractions() {
@@ -11738,7 +11794,9 @@
       }
       renderHintPanel();
 
-      const showFinishShare = state.finished && !customMode && !holdWinReveal && !state.readOnlyArchiveCompletion;
+      const showFinishShare = state.finished && !customMode && !holdWinReveal
+        && (!state.readOnlyArchiveCompletion || state.guesses.length > 0)
+        && !state.syntheticArchiveGuessFallback;
       els.finishShare.classList.toggle("hidden", !showFinishShare);
       if (!showFinishShare) {
         els.finishShare.classList.remove("postgame-enter");
@@ -11858,7 +11916,7 @@
       if (!state.finished) return false;
       if (isWinRevealHoldActive()) return false;
       if (customMode) return false;
-      if (gameMode !== "daily") return false;
+      if (gameMode !== "daily" && gameMode !== "archive") return false;
       return !els.resultReveal.classList.contains("hidden");
     }
 
@@ -14040,8 +14098,23 @@ function resolveApiBaseOrigin(explicitBase) {
       storageSet(getArchiveSyncStorageKey(puzzleDate), JSON.stringify({
         status: payload.status,
         guesses_used: payload.guesses_used,
+        guesses_signature: getArchiveGuessesSignature(payload.guesses),
         synced_at: new Date().toISOString()
       }));
+    }
+
+    function getArchiveGuessesSignature(guesses) {
+      if (!Array.isArray(guesses) || !guesses.length) return "";
+      return guesses
+        .map((guess) => {
+          if (!guess || typeof guess !== "object") return "";
+          const title = String(guess.title || "").trim();
+          const year = Number(guess.year);
+          if (!title || !Number.isInteger(year)) return "";
+          return `${normalize(title)}|${year}`;
+        })
+        .filter(Boolean)
+        .join("||");
     }
 
     function buildArchiveProgressPayload() {
@@ -14050,10 +14123,21 @@ function resolveApiBaseOrigin(explicitBase) {
       const rawGuessCount = Number(state.guesses.length) || 0;
       if (!state.finished && rawGuessCount < 1) return null;
       const guessesUsed = Math.min(MAX_GUESSES, Math.max(1, rawGuessCount));
+      const guesses = state.guesses
+        .map((guess) => {
+          if (!guess || typeof guess !== "object") return null;
+          const title = String(guess.title || "").trim();
+          const year = Number(guess.year);
+          if (!title || !Number.isInteger(year)) return null;
+          return { title, year };
+        })
+        .filter(Boolean)
+        .slice(0, MAX_GUESSES);
       return {
         puzzle_date: puzzleDate,
         status: state.finished ? (state.won ? "won" : "lost") : "started",
-        guesses_used: guessesUsed
+        guesses_used: guessesUsed,
+        guesses
       };
     }
 
@@ -14120,10 +14204,12 @@ function resolveApiBaseOrigin(explicitBase) {
       if (!authState.user || !authState.user.id) return;
 
       const previous = loadArchiveSyncMarker(payload.puzzle_date);
+      const guessesSignature = getArchiveGuessesSignature(payload.guesses);
       if (
         previous
         && previous.status === payload.status
         && Number(previous.guesses_used) === Number(payload.guesses_used)
+        && String(previous.guesses_signature || "") === guessesSignature
       ) {
         return;
       }
