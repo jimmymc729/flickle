@@ -11075,6 +11075,8 @@
     const customMode = Boolean(customMovie);
     const requestedMode = (urlParams.get("mode") || "daily").toLowerCase();
     const archiveDateParam = (urlParams.get("date") || "").trim();
+    const archiveStatusParam = (urlParams.get("archiveStatus") || "").trim().toLowerCase();
+    const archiveGuessesParam = Number(urlParams.get("archiveGuesses"));
     const archiveDefaultDate = buildPuzzleDate(new Date(), -1);
     const archiveSelectedDate = parsePuzzleDateKey(archiveDateParam) || archiveDefaultDate;
     const isArchiveModeRequested = requestedMode === "archive" || requestedMode === "rewind";
@@ -11167,6 +11169,23 @@
     consentChoice = loadConsentChoice();
     applyConsentToRuntime();
     if (state.finished) {
+      state.message = buildCompletionStatusMessage();
+    }
+    if (
+      gameMode === "archive"
+      && (archiveStatusParam === "won" || archiveStatusParam === "lost")
+      && !state.finished
+    ) {
+      state.started = true;
+      state.guesses = [];
+      state.finished = true;
+      state.won = archiveStatusParam === "won";
+      state.scored = true;
+      state.hintPoints = 0;
+      state.hintsUsed = 0;
+      state.revealedHintCast = [];
+      state.readOnlyArchiveCompletion = true;
+      state.remoteArchiveGuessesUsed = Math.max(0, Math.min(MAX_GUESSES, Number.isFinite(archiveGuessesParam) ? archiveGuessesParam : 0));
       state.message = buildCompletionStatusMessage();
     }
     if (state.guesses.length > 0 || state.finished) state.started = true;
@@ -14724,7 +14743,10 @@ function resolveApiBaseOrigin(explicitBase) {
         showTermsModal();
       }, "menu-terms");
       bind(els.modeDaily, "click", () => {
-        navigateWithQuery({ mode: null, date: null, seed: null }, ["mode", "date", "seed"]);
+        navigateWithQuery(
+          { mode: null, date: null, seed: null, archiveStatus: null, archiveGuesses: null },
+          ["mode", "date", "seed", "archiveStatus", "archiveGuesses"]
+        );
       }, "mode-daily");
       bind(els.modeArchive, "click", () => {
         showArchiveModal();
@@ -15288,7 +15310,15 @@ function resolveApiBaseOrigin(explicitBase) {
         button.addEventListener("click", () => {
           const dateKey = String(button.getAttribute("data-archive-date") || "").trim();
           if (!dateKey) return;
-          navigateWithQuery({ mode: "archive", date: dateKey, seed: null }, ["seed"]);
+          const row = progressByDate.get(dateKey);
+          const isCompleted = row && (row.status === "won" || row.status === "lost");
+          navigateWithQuery({
+            mode: "archive",
+            date: dateKey,
+            seed: null,
+            archiveStatus: isCompleted ? row.status : null,
+            archiveGuesses: isCompleted ? (Number(row.guesses_used) || null) : null
+          }, ["seed", "archiveStatus", "archiveGuesses"]);
         });
       });
     }

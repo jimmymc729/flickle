@@ -91,3 +91,7 @@ Original prompt: i think the problem might still exist on mobile, can you check 
     - when opening an archive date with no local saved run, the page now checks synced progress for that exact date
     - if synced progress says `won` or `lost`, archive opens directly into finished read-only results instead of a fresh playable puzzle
     - remote read-only archive results hide the share panel because there is no local guess history to render faithfully
+  - Hardened completed-card navigation:
+    - archive card clicks now pass `archiveStatus` and `archiveGuesses` in the destination query for completed dates
+    - archive page init applies that completed state immediately, before any async auth/progress refetch can race
+    - completed-card opens also clear stale local replay guesses so the read-only result is authoritative
