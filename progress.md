@@ -68,3 +68,13 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - Updated rules copy to mention hint-point mechanics.
 - Validation notes:
   - Could not run Playwright loop in this environment because `node` is unavailable; manual browser validation required.
+
+- Archive progress sync follow-up (June 2):
+  - Confirmed frontend already posts `started`, `won`, and `lost` to `/api/archive/progress`, and archive modal already renders those states correctly when rows exist.
+  - Most likely remaining bug was stale local archive sync markers suppressing re-uploads after the auth/API-origin migration.
+  - Previous marker key was only `flickle-archive-sync-<puzzle_date>`, so a browser that had ever synced that date could skip reposting it for a different signed-in user or a different API origin/database.
+  - Updated archive sync marker storage in `index.html` to `flickle-archive-sync-v2-<user_id>-<api_origin>-<puzzle_date>`.
+  - Added marker payload validation so malformed cached entries do not block a resync.
+- Next verification needed:
+  - Hard refresh the live site, replay an archive puzzle you know should count, then reopen Archive and confirm the card flips from `Unplayed` to `In progress` or `Completed`.
+  - If cards still stay gray, inspect live `/api/archive/progress?from=...&to=...` response for the signed-in session to confirm whether rows are absent server-side or just not deployed yet.

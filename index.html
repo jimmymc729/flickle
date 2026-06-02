@@ -2598,7 +2598,7 @@
     const TMDB_KEY_STORAGE = "flickle-tmdb-key";
     const PRACTICE_LAST_SEED_KEY = "flickle-practice-last-seed";
     const PRACTICE_IN_PROGRESS_KEY = "flickle-practice-in-progress";
-    const ARCHIVE_SYNC_KEY_PREFIX = "flickle-archive-sync";
+    const ARCHIVE_SYNC_KEY_PREFIX = "flickle-archive-sync-v2";
     const TMDB_DEFAULT_API_KEY = "f932b68b94ae7ebe832f6859510d2695";
     const UI_SOUND_TYPES = Object.freeze(["start", "guess", "share", "win", "lose", "error", "toggle-on", "hint-ready"]);
     const storageFallback = {};
@@ -11610,11 +11610,9 @@
         applyResultStats();
         state.scored = true;
       }
-      if (state.finished) {
-        syncArchiveProgressIfNeeded("submit-guess").catch((error) => {
-          console.warn("Flickle archive sync after guess failed:", error);
-        });
-      }
+      syncArchiveProgressIfNeeded("submit-guess").catch((error) => {
+        console.warn("Flickle archive sync after guess failed:", error);
+      });
 
       renderAll();
       persistState();
@@ -13802,19 +13800,16 @@
       });
     }
 
-    function resolveApiBaseOrigin(explicitBase) {
-      const candidate = String(explicitBase || "").trim()
-        || String(window.FLICKLE_API_BASE || "").trim();
-      if (candidate) return candidate.replace(/\/+$/, "");
-      if (window.location.protocol === "file:") return "http://127.0.0.1:8787";
-      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-        return "http://127.0.0.1:8787";
-      }
-  if (window.location.hostname === "flickle.io" || window.location.hostname === "www.flickle.io") {
-    return "https://api.flickle.io";
+function resolveApiBaseOrigin(explicitBase) {
+  const candidate = String(explicitBase || "").trim()
+    || String(window.FLICKLE_API_BASE || "").trim();
+  if (candidate) return candidate.replace(/\/+$/, "");
+  if (window.location.protocol === "file:") return "http://127.0.0.1:8787";
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://127.0.0.1:8787";
   }
-      return window.location.origin;
-    }
+  return window.location.origin;
+}
 
     function buildApiUrl(pathname) {
       const path = String(pathname || "").trim();
@@ -13964,7 +13959,11 @@
     }
 
     function getArchiveSyncStorageKey(puzzleDate) {
-      return `${ARCHIVE_SYNC_KEY_PREFIX}-${puzzleDate}`;
+      const userId = authState && authState.user && authState.user.id
+        ? String(authState.user.id).trim()
+        : "anonymous";
+      const apiScope = String(apiBaseOrigin || window.location.origin || "").trim().replace(/\/+$/, "");
+      return `${ARCHIVE_SYNC_KEY_PREFIX}-${userId}-${apiScope}-${puzzleDate}`;
     }
 
     function loadArchiveSyncMarker(puzzleDate) {
@@ -13973,6 +13972,7 @@
       try {
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== "object") return null;
+        if (!["started", "won", "lost"].includes(String(parsed.status || "").trim())) return null;
         return parsed;
       } catch {
         storageRemove(getArchiveSyncStorageKey(puzzleDate));
@@ -13990,11 +13990,13 @@
 
     function buildArchiveProgressPayload() {
       const puzzleDate = getArchivePuzzleDateForSync();
-      if (!puzzleDate || !state.finished) return null;
-      const guessesUsed = Math.min(MAX_GUESSES, Math.max(1, Number(state.guesses.length) || MAX_GUESSES));
+      if (!puzzleDate) return null;
+      const rawGuessCount = Number(state.guesses.length) || 0;
+      if (!state.finished && rawGuessCount < 1) return null;
+      const guessesUsed = Math.min(MAX_GUESSES, Math.max(1, rawGuessCount));
       return {
         puzzle_date: puzzleDate,
-        status: state.won ? "won" : "lost",
+        status: state.finished ? (state.won ? "won" : "lost") : "started",
         guesses_used: guessesUsed
       };
     }
