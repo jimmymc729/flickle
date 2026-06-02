@@ -14429,6 +14429,20 @@ function resolveApiBaseOrigin(explicitBase) {
       };
     }
 
+    function shouldPushMergedStatsToServer(mergedStats, remoteStats) {
+      if (!remoteStats) return true;
+      return (
+        Math.max(0, Number(mergedStats.dailyStreak) || 0) !== Math.max(0, Number(remoteStats.dailyStreak) || 0)
+        || Math.max(0, Number(mergedStats.bestDailyStreak) || 0) !== Math.max(0, Number(remoteStats.bestDailyStreak) || 0)
+        || Math.max(0, Number(mergedStats.winStreak) || 0) !== Math.max(0, Number(remoteStats.winStreak) || 0)
+        || Math.max(0, Number(mergedStats.bestWinStreak) || 0) !== Math.max(0, Number(remoteStats.bestWinStreak) || 0)
+        || (typeof mergedStats.lastDailyPlayedKey === "string" ? mergedStats.lastDailyPlayedKey : null)
+          !== (typeof remoteStats.lastDailyPlayedKey === "string" ? remoteStats.lastDailyPlayedKey : null)
+        || (typeof mergedStats.lastDailyWinKey === "string" ? mergedStats.lastDailyWinKey : null)
+          !== (typeof remoteStats.lastDailyWinKey === "string" ? remoteStats.lastDailyWinKey : null)
+      );
+    }
+
     async function syncUserStatsIfNeeded(reason = "runtime") {
       if (!authState.user || !authState.user.id) return;
       const stats = loadStats();
@@ -14474,7 +14488,8 @@ function resolveApiBaseOrigin(explicitBase) {
       const merged = mergeSyncedStats(localStats, remoteStats);
       persistStats(merged, { touch: false });
 
-      if (localMs >= remoteMs) {
+      if (localMs >= remoteMs || shouldPushMergedStatsToServer(merged, remoteStats)) {
+        persistStats(merged);
         await syncUserStatsIfNeeded("stats-local-preferred");
       } else {
         saveStatsSyncMarker(typeof remoteStats.updatedAt === "string" ? remoteStats.updatedAt : "");
