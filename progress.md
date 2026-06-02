@@ -78,3 +78,11 @@ Original prompt: i think the problem might still exist on mobile, can you check 
 - Next verification needed:
   - Hard refresh the live site, replay an archive puzzle you know should count, then reopen Archive and confirm the card flips from `Unplayed` to `In progress` or `Completed`.
   - If cards still stay gray, inspect live `/api/archive/progress?from=...&to=...` response for the signed-in session to confirm whether rows are absent server-side or just not deployed yet.
+
+- Archive in-progress follow-up (June 2):
+  - Completed cards were fixed, but in-progress cards could still appear gray when the archive modal was opened before the backend `started` row had been read back.
+  - Added local archive-progress fallback in `index.html`:
+    - reads `flickle-archive-state-<date>` and `flickle-state-<date>`
+    - derives `started` / `won` / `lost` from saved local puzzle state
+    - merges local state with server rows, preferring the more advanced status
+  - Added archive-modal repair sync so when local state proves a date is in progress/completed and the server row is missing/weaker, the modal quietly retries the POST.

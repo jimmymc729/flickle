@@ -14001,8 +14001,67 @@ function resolveApiBaseOrigin(explicitBase) {
       };
     }
 
-    async function syncArchiveProgressIfNeeded(reason = "runtime") {
-      const payload = buildArchiveProgressPayload();
+    function getArchiveProgressStatusRank(status) {
+      if (status === "won" || status === "lost") return 2;
+      if (status === "started") return 1;
+      return 0;
+    }
+
+    function choosePreferredArchiveProgressRow(current, candidate) {
+      if (!current) return candidate || null;
+      if (!candidate) return current;
+
+      const currentRank = getArchiveProgressStatusRank(current.status);
+      const candidateRank = getArchiveProgressStatusRank(candidate.status);
+      if (candidateRank !== currentRank) {
+        return candidateRank > currentRank ? candidate : current;
+      }
+
+      const currentGuesses = Number(current.guesses_used) || 0;
+      const candidateGuesses = Number(candidate.guesses_used) || 0;
+      if (candidateGuesses !== currentGuesses) {
+        return candidateGuesses > currentGuesses ? candidate : current;
+      }
+
+      if (current.localOnly && !candidate.localOnly) return candidate;
+      return current;
+    }
+
+    function readArchiveProgressRowFromStorage(storageKey, puzzleDate) {
+      const raw = storageGet(storageKey);
+      if (!raw) return null;
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.guesses)) return null;
+
+        const rawGuessCount = parsed.guesses.length;
+        const guessCount = Math.min(MAX_GUESSES, Math.max(0, Number(rawGuessCount) || 0));
+        const started = Boolean(parsed.started) || guessCount > 0;
+        const finished = Boolean(parsed.finished);
+        if (!started && !finished) return null;
+
+        const status = finished ? (parsed.won ? "won" : "lost") : "started";
+        if (!["started", "won", "lost"].includes(status)) return null;
+
+        return {
+          puzzle_date: puzzleDate,
+          status,
+          guesses_used: Math.max(1, guessCount || 1),
+          localOnly: true
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function getLocalArchiveProgressRow(puzzleDate) {
+      const archiveRow = readArchiveProgressRowFromStorage(`flickle-archive-state-${puzzleDate}`, puzzleDate);
+      const dailyRow = readArchiveProgressRowFromStorage(`flickle-state-${puzzleDate}`, puzzleDate);
+      return choosePreferredArchiveProgressRow(archiveRow, dailyRow);
+    }
+
+    async function syncArchiveProgressPayloadIfNeeded(payload, reason = "runtime") {
       if (!payload) return;
       if (!authState.user || !authState.user.id) return;
 
@@ -14035,6 +14094,11 @@ function resolveApiBaseOrigin(explicitBase) {
       } finally {
         archiveSyncInFlight.delete(inFlightKey);
       }
+    }
+
+    async function syncArchiveProgressIfNeeded(reason = "runtime") {
+      const payload = buildArchiveProgressPayload();
+      return syncArchiveProgressPayloadIfNeeded(payload, reason);
     }
 
     async function refreshAuthState(options = {}) {
@@ -15078,6 +15142,29 @@ function resolveApiBaseOrigin(explicitBase) {
           progressHelpText = `Could not load archive progress: ${escapeHtml(error.message || String(error))}`;
         }
       }
+
+      dateKeys.forEach((dateKey) => {
+        const localRow = getLocalArchiveProgressRow(dateKey);
+        if (!localRow) return;
+        const currentRow = progressByDate.get(dateKey) || null;
+        const mergedRow = choosePreferredArchiveProgressRow(currentRow, localRow);
+        if (mergedRow) {
+          progressByDate.set(dateKey, mergedRow);
+        }
+        if (
+          authState.user
+          && authState.user.id
+          && mergedRow === localRow
+        ) {
+          syncArchiveProgressPayloadIfNeeded({
+            puzzle_date: localRow.puzzle_date,
+            status: localRow.status,
+            guesses_used: localRow.guesses_used
+          }, "archive-modal-local-repair").catch((error) => {
+            console.warn("Flickle archive repair sync failed:", error);
+          });
+        }
+      });
 
       const rowsHtml = dateKeys.map((dateKey, index) => {
         const row = progressByDate.get(dateKey);
