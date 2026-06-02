@@ -83,7 +83,7 @@ async function requestMagicLink(request, env) {
     )
     .run();
 
-  const callbackOrigin = env.PUBLIC_ORIGIN || new URL(request.url).origin;
+  const callbackOrigin = resolveAuthCallbackOrigin(request, env);
   const magicLink = `${callbackOrigin}/api/auth/callback?token=${encodeURIComponent(token)}`;
   const devAuthLinksEnabled = String(env.DEV_AUTH_LINKS || "0") === "1";
 
@@ -179,7 +179,7 @@ async function completeMagicLink(request, env) {
     status: 302,
     headers: {
       Location: redirectTo,
-      "Set-Cookie": buildSessionCookie(sessionId, SESSION_TTL_DAYS),
+      "Set-Cookie": buildSessionCookie(sessionId, SESSION_TTL_DAYS, env),
       "Cache-Control": "no-store"
     }
   });
@@ -192,7 +192,7 @@ async function logout(request, env) {
     await env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
   }
   const res = json({ ok: true });
-  res.headers.append("Set-Cookie", clearSessionCookie());
+  res.headers.append("Set-Cookie", clearSessionCookie(env));
   return res;
 }
 
@@ -331,27 +331,37 @@ async function requireUser(request, env) {
   };
 }
 
-function buildSessionCookie(sessionId, ttlDays) {
+function buildSessionCookie(sessionId, ttlDays, env) {
   const maxAge = Math.max(60, Math.floor(ttlDays * 24 * 60 * 60));
-  return [
+  const parts = [
     `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}`,
     "Path=/",
     "HttpOnly",
     "Secure",
     "SameSite=Lax",
     `Max-Age=${maxAge}`
-  ].join("; ");
+  ];
+  const cookieDomain = resolveAuthCookieDomain(env);
+  if (cookieDomain) {
+    parts.push(`Domain=${cookieDomain}`);
+  }
+  return parts.join("; ");
 }
 
-function clearSessionCookie() {
-  return [
+function clearSessionCookie(env) {
+  const parts = [
     `${SESSION_COOKIE}=`,
     "Path=/",
     "HttpOnly",
     "Secure",
     "SameSite=Lax",
     "Max-Age=0"
-  ].join("; ");
+  ];
+  const cookieDomain = resolveAuthCookieDomain(env);
+  if (cookieDomain) {
+    parts.push(`Domain=${cookieDomain}`);
+  }
+  return parts.join("; ");
 }
 
 function getCookie(request, name) {
@@ -465,6 +475,22 @@ function resolveRedirectUrl(request, env) {
     return new URL(configured).toString();
   } catch {
     return new URL(configured, request.url).toString();
+  }
+}
+
+function resolveAuthCookieDomain(env) {
+  return String(env.AUTH_COOKIE_DOMAIN || "").trim();
+}
+
+function resolveAuthCallbackOrigin(request, env) {
+  const configured = String(env.AUTH_CALLBACK_ORIGIN || "").trim();
+  if (!configured) {
+    return new URL(request.url).origin;
+  }
+  try {
+    return new URL(configured).origin;
+  } catch {
+    return new URL(configured, request.url).origin;
   }
 }
 
