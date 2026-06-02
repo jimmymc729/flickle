@@ -721,27 +721,48 @@
         padding: 9px 13px 8px;
       }
       .archive-card-art {
+        display: grid;
+        grid-template-rows: auto 1fr auto auto;
+        align-items: center;
+        justify-items: center;
         min-height: 0;
+        padding: 8px 8px 10px;
       }
       .archive-card-art-mark {
-        left: 8px;
-        top: 8px;
+        position: static;
+        justify-self: start;
+        align-self: start;
         font-size: 1.05rem;
+        line-height: 1;
+        margin: 0;
       }
       .archive-card-status {
+        position: static;
+        transform: none;
+        left: auto;
+        top: auto;
+        align-self: center;
+        margin: 0;
         padding: 4px 9px;
         font-size: 0.66rem;
       }
       .archive-card-date {
-        left: 8px;
-        right: 8px;
-        bottom: 24px;
+        position: static;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        margin-top: auto;
         font-size: 0.82rem;
+        line-height: 1.05;
+        text-align: center;
       }
       .archive-card-art-meta {
-        left: 8px;
-        bottom: 8px;
+        position: static;
+        left: auto;
+        bottom: auto;
+        margin-top: 3px;
         font-size: 0.55rem;
+        text-align: center;
       }
       .archive-card-sub {
         font-size: 0.68rem;
