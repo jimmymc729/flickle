@@ -11192,6 +11192,7 @@
       hintPoints: 0,
       hintsUsed: 0,
       revealedHintCast: [],
+      localUpdatedAt: "",
       readOnlyArchiveCompletion: false,
       remoteArchiveGuessesUsed: 0,
       archiveHydratedFromServer: false,
@@ -11288,8 +11289,8 @@
       console.warn("Flickle auth init failed:", error);
     });
     authInitPromise.then(() => {
-      hydrateArchiveStateFromServer().catch((error) => {
-        console.warn("Flickle archive completion hydrate failed:", error);
+      hydrateSignedInPuzzleStateFromServer().catch((error) => {
+        console.warn("Flickle signed-in progress hydrate failed:", error);
       });
     });
     window.addEventListener("resize", syncResultRevealHeight, { passive: true });
@@ -11331,9 +11332,43 @@
       return Math.max(0, Math.min(MAX_GUESSES, remoteGuesses));
     }
 
-    async function hydrateArchiveStateFromServer() {
-      if (gameMode !== "archive") return;
-      if (state.guesses.length > 0 && !state.readOnlyArchiveCompletion) return;
+    function applySyncedProgressRow(row) {
+      if (!row || !["started", "won", "lost"].includes(String(row.status || ""))) return false;
+
+      const restoredGuesses = Array.isArray(row.guesses)
+        ? row.guesses.map(resolveMovieReference).filter(Boolean).slice(0, MAX_GUESSES)
+        : [];
+      const isCompleted = row.status === "won" || row.status === "lost";
+      const needsSyntheticSolvedCard = gameMode === "archive" && isCompleted && restoredGuesses.length === 0;
+
+      state.guesses = needsSyntheticSolvedCard ? [answer] : restoredGuesses;
+      state.started = state.guesses.length > 0 || isCompleted;
+      state.finished = isCompleted;
+      state.won = row.status === "won";
+      state.scored = isCompleted ? state.scored : false;
+      state.readOnlyArchiveCompletion = gameMode === "archive" && isCompleted;
+      state.syntheticArchiveGuessFallback = needsSyntheticSolvedCard;
+      state.remoteArchiveGuessesUsed = Math.max(
+        restoredGuesses.length,
+        Math.max(0, Math.min(MAX_GUESSES, Number(row.guesses_used) || 0))
+      );
+      state.archiveHydratedFromServer = gameMode === "archive";
+      state.message = isCompleted
+        ? buildCompletionStatusMessage()
+        : `${MAX_GUESSES - state.guesses.length} guesses left.`;
+
+      if (state.finished && !state.scored) {
+        applyResultStats();
+        state.scored = true;
+      }
+
+      renderAll();
+      persistState();
+      return true;
+    }
+
+    async function hydrateSignedInPuzzleStateFromServer() {
+      if (gameMode !== "archive" && gameMode !== "daily") return;
 
       const user = await refreshAuthState({ silent: true });
       if (!user || !user.id) return;
@@ -11342,29 +11377,9 @@
       if (result.unauthorized) return;
       const row = Array.isArray(result.progress) ? result.progress[0] : null;
       if (!row || !["started", "won", "lost"].includes(String(row.status || ""))) return;
-
-      const restoredGuesses = Array.isArray(row.guesses)
-        ? row.guesses.map(resolveMovieReference).filter(Boolean).slice(0, MAX_GUESSES)
-        : [];
-      const needsSyntheticSolvedCard = (row.status === "won" || row.status === "lost") && restoredGuesses.length === 0;
-
-      state.guesses = needsSyntheticSolvedCard ? [answer] : restoredGuesses;
-      state.started = state.guesses.length > 0 || row.status === "won" || row.status === "lost";
-      state.finished = row.status === "won" || row.status === "lost";
-      state.won = row.status === "won";
-      state.scored = state.finished;
-      state.readOnlyArchiveCompletion = state.finished;
-      state.syntheticArchiveGuessFallback = needsSyntheticSolvedCard;
-      state.remoteArchiveGuessesUsed = Math.max(
-        restoredGuesses.length,
-        Math.max(0, Math.min(MAX_GUESSES, Number(row.guesses_used) || 0))
-      );
-      state.archiveHydratedFromServer = true;
-      state.message = state.finished
-        ? buildCompletionStatusMessage()
-        : `${MAX_GUESSES - state.guesses.length} guesses left.`;
-      renderAll();
-      persistState();
+      const preferredRow = choosePreferredArchiveProgressRow(row, buildLocalProgressRow());
+      if (!preferredRow || preferredRow.localOnly) return;
+      applySyncedProgressRow(preferredRow);
     }
 
     function bindCoreInteractions() {
@@ -14197,6 +14212,16 @@ function resolveApiBaseOrigin(explicitBase) {
       return current;
     }
 
+    function buildLocalProgressRow() {
+      const payload = buildArchiveProgressPayload();
+      if (!payload) return null;
+      return {
+        ...payload,
+        updated_at: state.localUpdatedAt || null,
+        localOnly: true
+      };
+    }
+
     function readArchiveProgressRowFromStorage(storageKey, puzzleDate) {
       const raw = storageGet(storageKey);
       if (!raw) return null;
@@ -14744,6 +14769,7 @@ function resolveApiBaseOrigin(explicitBase) {
     }
 
     function persistState() {
+      const updatedAt = new Date().toISOString();
       const payload = {
         started: state.started,
         guesses: state.guesses.map((g) => ({
@@ -14756,7 +14782,8 @@ function resolveApiBaseOrigin(explicitBase) {
         scored: state.scored,
         hintPoints: state.hintPoints,
         hintsUsed: state.hintsUsed,
-        revealedHintCast: Array.isArray(state.revealedHintCast) ? state.revealedHintCast : []
+        revealedHintCast: Array.isArray(state.revealedHintCast) ? state.revealedHintCast : [],
+        updatedAt
       };
       try {
         storageSet(storageKey, JSON.stringify(payload));
@@ -14764,6 +14791,7 @@ function resolveApiBaseOrigin(explicitBase) {
         // Never block gameplay if storage is unavailable or quota is full.
         console.warn("Flickle state save failed:", error);
       }
+      state.localUpdatedAt = updatedAt;
       persistPracticeSessionMemory();
     }
 
@@ -14788,6 +14816,7 @@ function resolveApiBaseOrigin(explicitBase) {
         state.scored = Boolean(parsed.scored);
         state.hintPoints = Math.max(0, Number(parsed.hintPoints) || 0);
         state.hintsUsed = Math.max(0, Math.min(HINTS_MAX_PER_GAME, Number(parsed.hintsUsed) || 0));
+        state.localUpdatedAt = typeof parsed.updatedAt === "string" ? parsed.updatedAt : "";
         state.revealedHintCast = Array.isArray(parsed.revealedHintCast)
           ? parsed.revealedHintCast
             .map((name) => String(name || "").trim())
