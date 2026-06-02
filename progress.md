@@ -86,3 +86,8 @@ Original prompt: i think the problem might still exist on mobile, can you check 
     - now only derives local `started` state from saved in-progress puzzle state
     - no longer derives local completed states, because green should stay server-driven
   - Added archive-modal repair sync so when local state proves a date is in progress/completed and the server row is missing/weaker, the modal quietly retries the POST.
+  - Simplified archive card visuals so both `won` and `lost` statuses render as green `Completed`, matching the rule: green = completed, yellow = in progress, gray = unplayed.
+  - Added read-only archive completion hydrate:
+    - when opening an archive date with no local saved run, the page now checks synced progress for that exact date
+    - if synced progress says `won` or `lost`, archive opens directly into finished read-only results instead of a fresh playable puzzle
+    - remote read-only archive results hide the share panel because there is no local guess history to render faithfully

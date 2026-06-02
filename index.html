@@ -11123,7 +11123,9 @@
       scored: false,
       hintPoints: 0,
       hintsUsed: 0,
-      revealedHintCast: []
+      revealedHintCast: [],
+      readOnlyArchiveCompletion: false,
+      remoteArchiveGuessesUsed: 0
     };
     let nextDailyCountdownTimer = null;
     let winRevealHoldUntil = 0;
@@ -11194,8 +11196,14 @@
     } catch (error) {
       console.error("Flickle shell init failed:", error);
     }
-    refreshAuthState({ silent: true }).catch((error) => {
+    const authInitPromise = refreshAuthState({ silent: true });
+    authInitPromise.catch((error) => {
       console.warn("Flickle auth init failed:", error);
+    });
+    authInitPromise.then(() => {
+      hydrateArchiveReadOnlyCompletionFromServer().catch((error) => {
+        console.warn("Flickle archive completion hydrate failed:", error);
+      });
     });
     window.addEventListener("resize", syncResultRevealHeight, { passive: true });
     // Defer first paint until the script fully initializes all constants/functions.
@@ -11223,6 +11231,35 @@
         });
         playUiSound("start");
       }
+    }
+
+    function getFinishedGuessCount() {
+      const localGuesses = Number(state.guesses.length) || 0;
+      if (localGuesses > 0) return localGuesses;
+      const remoteGuesses = Number(state.remoteArchiveGuessesUsed) || 0;
+      return Math.max(0, Math.min(MAX_GUESSES, remoteGuesses));
+    }
+
+    async function hydrateArchiveReadOnlyCompletionFromServer() {
+      if (gameMode !== "archive") return;
+      if (state.finished || state.guesses.length > 0) return;
+
+      const user = await refreshAuthState({ silent: true });
+      if (!user || !user.id) return;
+
+      const result = await fetchArchiveProgressRange(puzzleKey, puzzleKey);
+      if (result.unauthorized) return;
+      const row = Array.isArray(result.progress) ? result.progress[0] : null;
+      if (!row || (row.status !== "won" && row.status !== "lost")) return;
+
+      state.started = true;
+      state.finished = true;
+      state.won = row.status === "won";
+      state.scored = true;
+      state.readOnlyArchiveCompletion = true;
+      state.remoteArchiveGuessesUsed = Math.max(0, Math.min(MAX_GUESSES, Number(row.guesses_used) || 0));
+      state.message = buildCompletionStatusMessage();
+      renderAll();
     }
 
     function bindCoreInteractions() {
@@ -11660,7 +11697,7 @@
         return;
       }
 
-      const used = state.guesses.length;
+      const used = state.finished ? getFinishedGuessCount() : state.guesses.length;
       const currentGuess = Math.min(MAX_GUESSES, used + 1);
       const guessText = state.finished
         ? `Guesses ${used} of ${MAX_GUESSES}`
@@ -11682,7 +11719,7 @@
       }
       renderHintPanel();
 
-      const showFinishShare = state.finished && !customMode && !holdWinReveal;
+      const showFinishShare = state.finished && !customMode && !holdWinReveal && !state.readOnlyArchiveCompletion;
       els.finishShare.classList.toggle("hidden", !showFinishShare);
       if (!showFinishShare) {
         els.finishShare.classList.remove("postgame-enter");
@@ -14546,17 +14583,18 @@ function resolveApiBaseOrigin(explicitBase) {
     }
 
     function buildCompletionStatusMessage() {
+      const finishedGuessCount = getFinishedGuessCount();
       if (state.won) {
         if (customMode) {
-          return `Challenge solved. Nice work: ${state.guesses.length}/${MAX_GUESSES}.`;
+          return `Challenge solved. Nice work: ${finishedGuessCount}/${MAX_GUESSES}.`;
         }
         if (gameMode === "jam") {
-          return `Practice solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+          return `Practice solved. Great job: ${finishedGuessCount}/${MAX_GUESSES}.`;
         }
         if (gameMode === "archive") {
-          return `Archive solved. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+          return `Archive solved. Great job: ${finishedGuessCount}/${MAX_GUESSES}.`;
         }
-        return `Already solved today. Great job: ${state.guesses.length}/${MAX_GUESSES}.`;
+        return `Already solved today. Great job: ${finishedGuessCount}/${MAX_GUESSES}.`;
       }
       if (customMode) {
         return `Challenge complete. You gave it a solid run.`;
@@ -15169,21 +15207,20 @@ function resolveApiBaseOrigin(explicitBase) {
         const isWon = row && row.status === "won";
         const isLost = row && row.status === "lost";
         const isStarted = row && row.status === "started";
+        const isCompleted = isWon || isLost;
         const perfect = isWon && Number(row.guesses_used) === 1;
         const statusText = isStarted
           ? "In progress"
-          : (isWon || isLost)
+          : isCompleted
             ? "Completed"
             : "Unplayed";
         const stateClass = perfect
           ? "state-won state-perfect"
-          : isWon
+          : isCompleted
             ? "state-won"
-            : isLost
-              ? "state-lost"
-              : isStarted
-                ? "state-started"
-                : "state-unplayed";
+            : isStarted
+              ? "state-started"
+              : "state-unplayed";
         const weekdayLabel = formatArchiveWeekday(dateKey);
         const dayStamp = weekdayLabel ? weekdayLabel.toUpperCase() : "DAY";
         return `
