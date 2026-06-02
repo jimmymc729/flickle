@@ -702,56 +702,23 @@
       .modal-overlay {
         align-items: start;
         overflow: auto;
-        padding-top: max(10px, env(safe-area-inset-top));
-        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
       }
       .modal {
         width: min(420px, 100%);
-        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
-        padding: 15px;
-      }
-      .howto-section {
-        padding: 12px;
-      }
-      .howto-heading {
-        margin-bottom: 8px;
-      }
-      .howto-text {
-        font-size: 0.96rem;
-        line-height: 1.35;
-      }
-      .howto-mini {
-        margin-top: 8px;
-        font-size: 0.76rem;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
       }
       .archive-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 9px;
-        max-height: min(45dvh, 360px);
+        gap: 10px;
+        max-height: min(42dvh, 340px);
       }
       .archive-card {
         aspect-ratio: auto;
-        height: 160px;
-        min-height: 160px;
-        padding: 8px 11px 7px;
-      }
-      .archive-card::before,
-      .archive-card::after {
-        width: 20px;
-        background:
-          repeating-linear-gradient(
-            180deg,
-            rgba(8, 12, 19, 0.92) 0 12px,
-            rgba(126, 142, 198, 0.94) 12px 18px,
-            rgba(7, 10, 18, 0) 18px 20px
-          ),
-          linear-gradient(180deg, rgba(63, 76, 111, 0.95), rgba(35, 45, 72, 0.98));
-      }
-      .archive-card::before {
-        left: 3px;
-      }
-      .archive-card::after {
-        right: 3px;
+        height: 168px;
+        min-height: 168px;
+        padding: 9px 13px 8px;
       }
       .archive-card-art {
         display: grid;
@@ -759,14 +726,13 @@
         align-items: center;
         justify-items: center;
         min-height: 0;
-        padding: 7px 7px 9px;
-        border-radius: 5px;
+        padding: 8px 8px 10px;
       }
       .archive-card-art-mark {
         position: static;
         justify-self: start;
         align-self: start;
-        font-size: 0.96rem;
+        font-size: 1.05rem;
         line-height: 1;
         margin: 0;
       }
@@ -777,9 +743,8 @@
         top: auto;
         align-self: center;
         margin: 0;
-        margin-top: 2px;
-        padding: 4px 10px;
-        font-size: 0.64rem;
+        padding: 4px 9px;
+        font-size: 0.66rem;
       }
       .archive-card-date {
         position: static;
@@ -788,7 +753,7 @@
         bottom: auto;
         order: 3;
         margin-top: auto;
-        font-size: 0.8rem;
+        font-size: 0.84rem;
         line-height: 1.05;
         text-align: center;
       }
@@ -797,32 +762,17 @@
         left: auto;
         bottom: auto;
         order: 4;
-        margin-top: 3px;
-        font-size: 0.51rem;
-        letter-spacing: 0.07em;
+        margin-top: 2px;
+        font-size: 0.53rem;
         text-align: center;
       }
       .archive-card-sub {
-        margin-top: 3px;
-        font-size: 0.62rem;
-        letter-spacing: 0.12em;
-      }
-      .archive-progress {
-        margin-top: 8px;
-        padding: 9px 9px 8px;
-      }
-      .archive-progress-row {
-        gap: 6px;
-      }
-      .archive-progress-title {
-        font-size: 0.74rem;
+        margin-top: 4px;
+        font-size: 0.68rem;
       }
       .archive-progress-values {
-        gap: 7px;
-        font-size: 0.67rem;
-      }
-      .archive-progress-bar {
-        margin-top: 7px;
+        gap: 7px 8px;
+        font-size: 0.7rem;
       }
     }
     .consent-banner {
@@ -15449,7 +15399,7 @@ function resolveApiBaseOrigin(explicitBase) {
         <div class="howto">
           <section class="howto-section">
             <h3 class="howto-heading">Archive</h3>
-            <p class="howto-text">Replay any past Flickle puzzle from the vault.</p>
+            <p class="howto-text">Missed a day? Explore Flickle's movie vault and replay any previous puzzle.</p>
             <p class="howto-mini">${progressHelpText}</p>
             ${progressHtml}
           </section>
