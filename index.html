@@ -588,6 +588,21 @@
         0 6px 12px rgba(5, 8, 15, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
+    .archive-card-note {
+      position: absolute;
+      right: 10px;
+      top: 9px;
+      z-index: 3;
+      font-size: 0.6rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(238, 244, 255, 0.72);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.46);
+      max-width: 76px;
+      text-align: right;
+    }
     .archive-card.state-won {
       border-color: rgba(125, 208, 163, 0.52);
       background:
@@ -635,6 +650,9 @@
       border-color: rgba(245, 215, 133, 0.72);
       background: rgba(128, 100, 33, 0.96);
       color: #fff2cd;
+    }
+    .archive-card.state-started .archive-card-note {
+      color: rgba(255, 244, 208, 0.82);
     }
     .archive-card.state-perfect {
       border-color: rgba(228, 206, 126, 0.72);
@@ -742,6 +760,14 @@
         margin: 0;
         padding: 4px 9px;
         font-size: 0.66rem;
+      }
+      .archive-card-note {
+        position: static;
+        justify-self: end;
+        align-self: start;
+        margin: 0;
+        font-size: 0.58rem;
+        max-width: 62px;
       }
       .archive-card-date {
         position: static;
@@ -15518,6 +15544,17 @@ function resolveApiBaseOrigin(explicitBase) {
         const isStarted = row && row.status === "started";
         const isCompleted = isWon || isLost;
         const perfect = isWon && Number(row.guesses_used) === 1;
+        const startedGuessCount = isStarted
+          ? Math.max(1, Math.min(MAX_GUESSES, Number(row.guesses_used) || 1))
+          : 0;
+        const startedTurnText = isStarted ? `${startedGuessCount}/${MAX_GUESSES}` : "";
+        const completedRankText = isCompleted
+          ? getFlickleRank(
+            Math.max(1, Math.min(MAX_GUESSES, Number(row.guesses_used) || MAX_GUESSES)),
+            isWon
+          )
+          : "";
+        const cardNoteText = isStarted ? startedTurnText : completedRankText;
         const statusText = isStarted
           ? "In progress"
           : isCompleted
@@ -15536,6 +15573,7 @@ function resolveApiBaseOrigin(explicitBase) {
           <button class="archive-card archive-date-btn ${stateClass}" type="button" data-archive-date="${escapeHtml(dateKey)}">
             <div class="archive-card-art">
               <span class="archive-card-art-mark">${escapeHtml(dayStamp)}</span>
+              ${cardNoteText ? `<span class="archive-card-note">${escapeHtml(cardNoteText)}</span>` : ""}
               <span class="archive-card-status">${escapeHtml(statusText)}</span>
               <span class="archive-card-art-meta">${escapeHtml(`${index + 1} ${index === 0 ? "day" : "days"} ago`)}</span>
               <span class="archive-card-date">${escapeHtml(formatArchiveDateLabel(dateKey))}</span>
