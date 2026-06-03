@@ -15548,13 +15548,7 @@ function resolveApiBaseOrigin(explicitBase) {
           ? Math.max(1, Math.min(MAX_GUESSES, Number(row.guesses_used) || 1))
           : 0;
         const startedTurnText = isStarted ? `${startedGuessCount}/${MAX_GUESSES}` : "";
-        const completedRankText = isCompleted
-          ? getFlickleRank(
-            Math.max(1, Math.min(MAX_GUESSES, Number(row.guesses_used) || MAX_GUESSES)),
-            isWon
-          )
-          : "";
-        const cardNoteText = isStarted ? startedTurnText : completedRankText;
+        const cardNoteText = isStarted ? startedTurnText : "";
         const statusText = isStarted
           ? "In progress"
           : isCompleted
