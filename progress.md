@@ -107,3 +107,66 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - iPhone archive modal layout fix:
     - constrained modal height to the viewport and allowed modal/body scrolling on small screens
     - changed archive cards on <=560px from tall poster-ratio blocks to shorter fixed-height cards so status/date text stays visible on iPhone Safari
+
+- Solved-state archive CTA pass (June 4):
+  - Added a new `Archive` button to the solved-state action row beside `Share Result` and `Post to X`.
+  - Reused the existing archive modal flow via `showArchiveModal()` instead of adding a new page or route.
+  - Styled the new button as a quieter tertiary action so `Share Result` stays primary.
+  - Adjusted the mobile solved-state row so buttons size to their content again; this fixes the disliked two-line/stacked `Share Result` label caused by equal-width stretching.
+  - Tightened the solved-state mobile row further with smaller gaps/padding and slightly smaller secondary/tertiary buttons so all three actions are more likely to fit on one line at narrow widths.
+  - Reduced `Archive` button width slightly so the solved-state action row feels more balanced next to the larger primary share button.
+  - Verification gap:
+    - Could not run a real browser screenshot pass in this environment because the in-app Browser tools were not surfaced here and `playwright` is not installed in the Node REPL environment.
+
+- Analytics cleanup section 1 (June 4):
+  - Fixed duplicate `share_clicked` logging from the share preview box by routing preview clicks through the main share handler with a single `context: "preview_box"` event.
+  - Added GA consent bootstrap in the `<head>` so saved consent is read before the initial `gtag('config', ...)` call.
+  - Bootstrap now defaults analytics/ad storage to denied until a saved `"all"` preference is found, matching the current app consent model more closely on first load.
+  - Recommended verification after deploy:
+    - In GA DebugView, confirm one preview-box click emits one `share_clicked`.
+    - Confirm a returning user with saved `essential` consent does not send analytics before consent state is applied.
+
+- Analytics cleanup section 2 (June 4):
+  - Added archive funnel events in `index.html`:
+    - `archive_opened` when the archive modal opens, with `source` (`menu`, `result_screen`, or fallback `direct`)
+    - `archive_progress_loaded` after archive progress fetch/merge, with load `status`
+    - `archive_date_selected` when a specific archive day is chosen
+    - `archive_puzzle_started` when an archive puzzle is actually started
+    - `archive_puzzle_completed` when an archive puzzle ends in win/loss
+  - Routed archive open tracking through `showArchiveModal(source)` so menu and results-screen entry points are measured consistently without duplicate logging.
+  - Added lightweight archive selection metadata like `selection_state` and `days_ago` for easier funnel breakdowns.
+  - Recommended verification after deploy:
+    - In GA DebugView, confirm one archive menu click emits `archive_opened` then `archive_progress_loaded`.
+    - Confirm selecting an archive day emits `archive_date_selected`.
+    - Confirm playing that archive puzzle emits `archive_puzzle_started`, then `archive_puzzle_completed` on finish.
+
+- Analytics cleanup section 3 (June 4):
+  - Disabled GA4 automatic pageview (`send_page_view: false`) and replaced it with one explicit mode-aware `page_view` per load.
+  - Added reporting context helper so pageviews now use stable titles/paths for:
+    - Daily: `Flickle - Daily Movie Guess` / `/daily`
+    - Archive: `Flickle - Archive` / `/archive`
+    - Practice: `Flickle - Practice Mode` / `/practice`
+    - Custom: `Flickle - Custom Challenge` / `/custom-challenge`
+  - Explicit pageviews also include `game_mode`, `report_mode`, and `custom_mode` params for cleaner GA segmentation.
+  - Recommended verification after deploy:
+    - In GA DebugView, confirm a single `page_view` fires on load.
+    - Confirm Daily / Archive / Practice / Custom loads now show distinct `page_title` and `page_path` values.
+
+- Analytics cleanup section 4 (June 5):
+  - Added shared analytics payload helpers so events consistently send lower-cardinality params (`report_mode`, count buckets, archive recency buckets, hint-point buckets).
+  - Removed noisy exact-value GA params from gameplay/share events, including:
+    - exact `puzzle_key`
+    - exact guessed movie titles
+    - raw user input strings
+    - exact archive puzzle dates in GA events
+  - Replaced them with cleaner reporting fields like:
+    - `guess_number_bucket`
+    - `guesses_used_bucket`
+    - `suggestion_count_bucket`
+    - `hint_points_total_bucket`
+    - `hint_points_remaining_bucket`
+    - `archive_days_ago_bucket`
+  - Left archive sync/API payloads untouched; remaining `puzzle_date` references are backend progress-sync data, not GA analytics params.
+  - Recommended verification after deploy:
+    - In GA DebugView, confirm cleaned events still fire with the new bucketed params.
+    - In standard GA reports, confirm dimensions no longer get cluttered by exact titles/inputs.

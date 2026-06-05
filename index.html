@@ -6,9 +6,35 @@
   <script src="flickle-facts-data.js"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
+    const FLICKLE_CONSENT_PREF_KEY_BOOT = "flickle-consent-pref-v1";
     function gtag(){dataLayer.push(arguments);}
+    function getBootstrapConsentChoice() {
+      const normalizeBootstrapConsentChoice = (value) => {
+        const normalized = String(value || "").trim().toLowerCase();
+        return normalized === "all" || normalized === "essential" ? normalized : null;
+      };
+      try {
+        const raw = window.localStorage ? window.localStorage.getItem(FLICKLE_CONSENT_PREF_KEY_BOOT) : null;
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return normalizeBootstrapConsentChoice(parsed && parsed.choice);
+      } catch {
+        try {
+          const raw = window.localStorage ? window.localStorage.getItem(FLICKLE_CONSENT_PREF_KEY_BOOT) : null;
+          return normalizeBootstrapConsentChoice(raw);
+        } catch {
+          return null;
+        }
+      }
+    }
+    const flickleBootstrapConsentChoice = getBootstrapConsentChoice();
+    window.flickleConsentState = {
+      ad_storage: flickleBootstrapConsentChoice === "all" ? "granted" : "denied",
+      analytics_storage: flickleBootstrapConsentChoice === "all" ? "granted" : "denied"
+    };
+    gtag("consent", "default", window.flickleConsentState);
     gtag('js', new Date());
-    gtag('config', 'G-1B0MHEC0F9');
+    gtag('config', 'G-1B0MHEC0F9', { send_page_view: false });
   </script>
 
   <meta charset="utf-8" />
@@ -1950,6 +1976,9 @@
       flex-wrap: wrap;
       justify-content: center;
     }
+    .finish-share-actions .action {
+      min-width: 0;
+    }
 
     .share-cta-note {
       margin: 0;
@@ -2314,6 +2343,12 @@
       filter: brightness(1.06);
       box-shadow: 0 8px 18px rgba(109, 171, 45, 0.42);
     }
+    #finish-x-btn {
+      min-width: 104px;
+    }
+    #finish-archive-btn {
+      min-width: 92px;
+    }
     .action-x {
       min-width: 112px;
       padding: 8px 12px;
@@ -2328,6 +2363,19 @@
     .action-x:hover {
       filter: brightness(1.04);
       border-color: rgba(255, 255, 255, 0.22);
+    }
+    .action-archive {
+      padding: 8px 14px;
+      font-weight: 650;
+      letter-spacing: 0.15px;
+      color: #d8def0;
+      border-color: rgba(176, 196, 255, 0.22);
+      background: linear-gradient(180deg, rgba(24, 31, 47, 0.92), rgba(15, 20, 32, 0.96));
+      box-shadow: inset 0 0 0 1px rgba(196, 212, 255, 0.04);
+    }
+    .action-archive:hover {
+      filter: brightness(1.05);
+      border-color: rgba(176, 196, 255, 0.3);
     }
     #finish-play-again-btn {
       min-width: 134px;
@@ -2555,6 +2603,36 @@
         padding: 9px 12px;
         font-size: 0.84rem;
       }
+      .finish-share-actions {
+        width: auto;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+      .finish-share-actions .action:not(#finish-play-again-btn) {
+        flex: 0 0 auto;
+      }
+      #finish-share-btn {
+        min-width: 130px;
+        padding-inline: 15px;
+        font-size: 0.86rem;
+        gap: 5px;
+        white-space: nowrap;
+      }
+      #finish-x-btn,
+      #finish-archive-btn {
+        white-space: nowrap;
+      }
+      #finish-x-btn {
+        min-width: 96px;
+        padding-inline: 10px;
+        font-size: 0.82rem;
+        white-space: nowrap;
+      }
+      #finish-archive-btn {
+        min-width: 88px;
+        padding-inline: 9px;
+        font-size: 0.82rem;
+      }
       .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .tile-cast-match { min-height: 116px; }
       .tile-cast-avatar {
@@ -2727,6 +2805,7 @@
             <div class="finish-share-actions">
               <button id="finish-share-btn" class="action" type="button">Share Result</button>
               <button id="finish-x-btn" class="action action-x" type="button">Post to X</button>
+              <button id="finish-archive-btn" class="action action-archive" type="button">Archive</button>
               <button id="finish-play-again-btn" class="action hidden" type="button">Play Again</button>
             </div>
             <p class="share-cta-note">Copies the message below.</p>
@@ -10687,6 +10766,7 @@
       finishShare: document.getElementById("finish-share"),
       finishShareBtn: document.getElementById("finish-share-btn"),
       finishXBtn: document.getElementById("finish-x-btn"),
+      finishArchiveBtn: document.getElementById("finish-archive-btn"),
       finishPlayAgainBtn: document.getElementById("finish-play-again-btn"),
       sharePreviewTitle: document.getElementById("share-preview-title"),
       sharePreviewText: document.getElementById("share-preview-text"),
@@ -11368,6 +11448,7 @@
     loadState();
     consentChoice = loadConsentChoice();
     applyConsentToRuntime();
+    trackAnalyticsPageView();
     if (state.finished) {
       state.message = buildCompletionStatusMessage();
     }
@@ -11448,11 +11529,12 @@
       persistState();
       els.guessInput.focus();
       if (!wasStarted) {
-        trackAnalyticsEvent("start_game", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey
-        });
+        trackAnalyticsEvent("start_game", getAnalyticsBaseParams());
+        if (gameMode === "archive") {
+          trackAnalyticsEvent("archive_puzzle_started", getAnalyticsBaseParams({
+            archive_days_ago_bucket: getArchiveDaysAgoBucket()
+          }));
+        }
         playUiSound("start");
       }
     }
@@ -11598,16 +11680,13 @@
 
       let shareActionInFlight = false;
 
-      async function handleShareClick(targetBtn) {
+      async function handleShareClick(targetBtn, contextOverride = "") {
         if (shareActionInFlight) return;
         shareActionInFlight = true;
-        trackAnalyticsEvent("share_clicked", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey,
-          context: targetBtn === els.finishShareBtn ? "result_screen" : "in_game",
+        trackAnalyticsEvent("share_clicked", getAnalyticsBaseParams({
+          context: contextOverride || (targetBtn === els.finishShareBtn ? "result_screen" : "in_game"),
           native_share: "no"
-        });
+        }));
         if (targetBtn) targetBtn.disabled = true;
         try {
           const result = await shareResult();
@@ -11636,12 +11715,10 @@
 
       function handleXShareClick(targetBtn) {
         const opened = openXShareComposer();
-        trackAnalyticsEvent(opened ? "share_success" : "share_failed", {
+        trackAnalyticsEvent(opened ? "share_success" : "share_failed", getAnalyticsBaseParams({
           method: opened ? "x_intent" : "x_intent_blocked",
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey
-        });
+          channel: "x"
+        }));
         if (opened) {
           setStatus("Opened X composer.", "success");
           flashActionButton(targetBtn, "Opened X");
@@ -11653,28 +11730,27 @@
 
       if (els.tweetBtn) {
         els.tweetBtn.addEventListener("click", function () {
-          trackAnalyticsEvent("share_clicked", {
-            game_mode: gameMode,
-            custom_mode: customMode ? "yes" : "no",
-            puzzle_key: puzzleKey,
+          trackAnalyticsEvent("share_clicked", getAnalyticsBaseParams({
             context: "in_game",
             native_share: "no",
             channel: "x"
-          });
+          }));
           handleXShareClick(this);
         });
       }
       if (els.finishXBtn) {
         els.finishXBtn.addEventListener("click", function () {
-          trackAnalyticsEvent("share_clicked", {
-            game_mode: gameMode,
-            custom_mode: customMode ? "yes" : "no",
-            puzzle_key: puzzleKey,
+          trackAnalyticsEvent("share_clicked", getAnalyticsBaseParams({
             context: "result_screen",
             native_share: "no",
             channel: "x"
-          });
+          }));
           handleXShareClick(this);
+        });
+      }
+      if (els.finishArchiveBtn) {
+        els.finishArchiveBtn.addEventListener("click", function () {
+          showArchiveModal("result_screen");
         });
       }
       if (els.finishPlayAgainBtn) {
@@ -11693,14 +11769,7 @@
       }
 
       const handlePreviewCopy = () => {
-        trackAnalyticsEvent("share_clicked", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey,
-          context: "preview_box",
-          native_share: "no"
-        });
-        handleShareClick(els.finishShareBtn);
+        handleShareClick(els.finishShareBtn, "preview_box");
       };
 
       if (els.sharePreviewText) {
@@ -11794,14 +11863,11 @@
             setStatus("Multiple versions found. Pick the title with a year:", "error");
           }
           showStatusSuggestions(disambiguation);
-          trackAnalyticsEvent("guess_disambiguation_needed", {
-            game_mode: gameMode,
-            custom_mode: customMode ? "yes" : "no",
-            puzzle_key: puzzleKey,
-            input: typed.slice(0, 80),
+          trackAnalyticsEvent("guess_disambiguation_needed", getAnalyticsBaseParams({
             suggestion_count: disambiguation.length,
-            input_year: typedYear
-          });
+            suggestion_count_bucket: getCountBucket(disambiguation.length),
+            input_year_supplied: typedYear !== null ? "yes" : "no"
+          }));
           playUiSound("error");
           return;
         }
@@ -11815,13 +11881,10 @@
           setStatus(`Not in ${poolLabel}. Try a more common title.`, "error");
           hideStatusSuggestions();
         }
-        trackAnalyticsEvent("guess_not_found", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey,
-          input: typed.slice(0, 80),
-          suggestion_count: closestTitles.length
-        });
+        trackAnalyticsEvent("guess_not_found", getAnalyticsBaseParams({
+          suggestion_count: closestTitles.length,
+          suggestion_count_bucket: getCountBucket(closestTitles.length)
+        }));
         playUiSound("error");
         return;
       }
@@ -11840,15 +11903,13 @@
       if (pointGain > 0) {
         state.hintPoints += pointGain;
       }
-      trackAnalyticsEvent("guess_submitted", {
-        game_mode: gameMode,
-        custom_mode: customMode ? "yes" : "no",
-        puzzle_key: puzzleKey,
-        guess_title: guessMovie.title,
+      trackAnalyticsEvent("guess_submitted", getAnalyticsBaseParams({
         guess_number: state.guesses.length,
+        guess_number_bucket: getGuessNumberBucket(state.guesses.length),
         hint_points_gained: pointGain,
-        hint_points_total: state.hintPoints
-      });
+        hint_points_total: state.hintPoints,
+        hint_points_total_bucket: getHintPointsBucket(state.hintPoints)
+      }));
 
       if (moviesMatchByIdentity(guessMovie, answer)) {
         state.finished = true;
@@ -11875,12 +11936,18 @@
             smoothScrollToPostGame();
           }, WIN_REVEAL_SCROLL_DELAY_MS);
         }, WIN_REVEAL_HOLD_MS);
-        trackAnalyticsEvent("win_game", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey,
-          guesses_used: state.guesses.length
-        });
+        trackAnalyticsEvent("win_game", getAnalyticsBaseParams({
+          guesses_used: state.guesses.length,
+          guesses_used_bucket: getGuessNumberBucket(state.guesses.length)
+        }));
+        if (gameMode === "archive") {
+          trackAnalyticsEvent("archive_puzzle_completed", getAnalyticsBaseParams({
+            result: "won",
+            guesses_used: state.guesses.length,
+            guesses_used_bucket: getGuessNumberBucket(state.guesses.length),
+            archive_days_ago_bucket: getArchiveDaysAgoBucket()
+          }));
+        }
       } else if (state.guesses.length >= MAX_GUESSES) {
         state.finished = true;
         state.won = false;
@@ -11889,12 +11956,18 @@
           : gameMode === "archive"
             ? `Out of guesses. This archive movie was ${answer.title}.`
             : `Out of guesses. Today's movie was ${answer.title}.`;
-        trackAnalyticsEvent("lose_game", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey,
-          guesses_used: state.guesses.length
-        });
+        trackAnalyticsEvent("lose_game", getAnalyticsBaseParams({
+          guesses_used: state.guesses.length,
+          guesses_used_bucket: getGuessNumberBucket(state.guesses.length)
+        }));
+        if (gameMode === "archive") {
+          trackAnalyticsEvent("archive_puzzle_completed", getAnalyticsBaseParams({
+            result: "lost",
+            guesses_used: state.guesses.length,
+            guesses_used_bucket: getGuessNumberBucket(state.guesses.length),
+            archive_days_ago_bucket: getArchiveDaysAgoBucket()
+          }));
+        }
       } else {
         state.message = `${MAX_GUESSES - state.guesses.length} guesses left.`;
       }
@@ -13055,13 +13128,11 @@
         state.revealedHintCast.push(nextHint);
         pendingHintRevealKey = normalize(nextHint);
         state.message = `Hint unlocked: ${nextHint}.`;
-        trackAnalyticsEvent("hint_bought", {
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey,
+        trackAnalyticsEvent("hint_bought", getAnalyticsBaseParams({
           hints_used: state.hintsUsed,
-          hint_points_remaining: state.hintPoints
-        });
+          hint_points_remaining: state.hintPoints,
+          hint_points_remaining_bucket: getHintPointsBucket(state.hintPoints)
+        }));
         renderAll();
         persistState();
         playUiSound("toggle-on");
@@ -14716,6 +14787,114 @@ function resolveApiBaseOrigin(explicitBase) {
       }
     }
 
+    function getAnalyticsReportMode() {
+      if (customMode) return "custom";
+      if (gameMode === "jam") return "practice";
+      if (gameMode === "archive") return "archive";
+      return "daily";
+    }
+
+    function getAnalyticsBaseParams(extra = {}) {
+      return {
+        game_mode: gameMode,
+        report_mode: getAnalyticsReportMode(),
+        custom_mode: customMode ? "yes" : "no",
+        ...extra
+      };
+    }
+
+    function getAnalyticsArchiveDaysAgo() {
+      if (gameMode !== "archive" || !(puzzleDate instanceof Date)) return null;
+      const todayDate = buildPuzzleDate(new Date(), 0);
+      const archiveDate = buildPuzzleDate(puzzleDate, 0);
+      return Math.max(0, Math.round((todayDate.getTime() - archiveDate.getTime()) / 86400000));
+    }
+
+    function getArchiveDaysAgoBucket(daysAgo = null) {
+      const value = Number.isFinite(daysAgo) ? daysAgo : getAnalyticsArchiveDaysAgo();
+      if (!Number.isFinite(value) || value < 0) return "n/a";
+      if (value <= 1) return "0_1d";
+      if (value <= 3) return "2_3d";
+      if (value <= 7) return "4_7d";
+      if (value <= 14) return "8_14d";
+      if (value <= 30) return "15_30d";
+      return "31d_plus";
+    }
+
+    function getCountBucket(value) {
+      const count = Number(value) || 0;
+      if (count <= 0) return "0";
+      if (count === 1) return "1";
+      if (count <= 3) return "2_3";
+      if (count <= 5) return "4_5";
+      if (count <= 8) return "6_8";
+      return "9_plus";
+    }
+
+    function getGuessNumberBucket(value) {
+      const count = Number(value) || 0;
+      if (count <= 0) return "0";
+      if (count === 1) return "1";
+      if (count === 2) return "2";
+      if (count <= 4) return "3_4";
+      if (count <= 6) return "5_6";
+      if (count <= 8) return "7_8";
+      return "9_10";
+    }
+
+    function getHintPointsBucket(value) {
+      const points = Number(value) || 0;
+      if (points <= 0) return "0";
+      if (points < 10) return "1_9";
+      if (points < 25) return "10_24";
+      if (points < 50) return "25_49";
+      if (points < 100) return "50_99";
+      return "100_plus";
+    }
+
+    function getAnalyticsPageContext() {
+      if (customMode) {
+        return {
+          pageTitle: "Flickle - Custom Challenge",
+          pagePath: "/custom-challenge",
+          reportMode: "custom"
+        };
+      }
+      if (gameMode === "jam") {
+        return {
+          pageTitle: "Flickle - Practice Mode",
+          pagePath: "/practice",
+          reportMode: "practice"
+        };
+      }
+      if (gameMode === "archive") {
+        return {
+          pageTitle: "Flickle - Archive",
+          pagePath: "/archive",
+          reportMode: "archive"
+        };
+      }
+      return {
+        pageTitle: "Flickle - Daily Movie Guess",
+        pagePath: "/daily",
+        reportMode: "daily"
+      };
+    }
+
+    function applyAnalyticsPageContext() {
+      const context = getAnalyticsPageContext();
+      document.title = context.pageTitle;
+      return context;
+    }
+
+    function trackAnalyticsPageView() {
+      const context = applyAnalyticsPageContext();
+      trackAnalyticsEvent("page_view", getAnalyticsBaseParams({
+        page_title: context.pageTitle,
+        page_path: context.pagePath
+      }));
+    }
+
     function openXShareComposer() {
       const text = buildShareText();
       const link = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
@@ -14727,22 +14906,18 @@ function resolveApiBaseOrigin(explicitBase) {
       const text = buildShareText();
       const copyResult = await copyTextWithFallback(text);
       if (copyResult === "copied") {
-        trackAnalyticsEvent("share_success", {
+        trackAnalyticsEvent("share_success", getAnalyticsBaseParams({
           method: "clipboard",
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey
-        });
+          channel: "clipboard"
+        }));
         setStatus("Copied to clipboard.", "success");
         playUiSound("share");
         return "copied";
       } else {
-        trackAnalyticsEvent("share_failed", {
+        trackAnalyticsEvent("share_failed", getAnalyticsBaseParams({
           method: "clipboard",
-          game_mode: gameMode,
-          custom_mode: customMode ? "yes" : "no",
-          puzzle_key: puzzleKey
-        });
+          channel: "clipboard"
+        }));
         showManualCopyFallback(text);
         setStatus("Clipboard unavailable. Press ⌘C / Ctrl+C to copy.", "complete");
         return "manual";
@@ -15171,7 +15346,7 @@ function resolveApiBaseOrigin(explicitBase) {
         );
       }, "mode-daily");
       bind(els.modeArchive, "click", () => {
-        showArchiveModal();
+        showArchiveModal("menu");
       }, "mode-archive");
       bind(els.modeCreate, "click", () => {
         showCreateModal();
@@ -15743,10 +15918,13 @@ function resolveApiBaseOrigin(explicitBase) {
       renderCreateState();
     }
 
-    async function showArchiveModal() {
+    async function showArchiveModal(source = "direct") {
       closeMenu();
       const days = 45;
       const today = buildPuzzleDate(new Date(), 0);
+      trackAnalyticsEvent("archive_opened", getAnalyticsBaseParams({
+        source,
+      }));
       const dateKeys = [];
       for (let i = 1; i <= days; i += 1) {
         dateKeys.push(formatPuzzleKey(buildPuzzleDate(today, -i)));
@@ -15755,6 +15933,8 @@ function resolveApiBaseOrigin(explicitBase) {
 
       let progressByDate = new Map();
       let progressHelpText = "Sign in to see played/unplayed colors.";
+      let progressLoadStatus = authState.user && authState.user.id ? "loading" : "signed_out";
+      let serverRowsLoaded = 0;
 
       if (authState.user && authState.user.id) {
         progressHelpText = "Loading your archive progress...";
@@ -15763,23 +15943,29 @@ function resolveApiBaseOrigin(explicitBase) {
           const to = dateKeys[0];
           const result = await fetchArchiveProgressRange(from, to);
           if (!result.unauthorized) {
+            serverRowsLoaded = Array.isArray(result.progress) ? result.progress.length : 0;
             progressByDate = new Map(
               result.progress
                 .filter((row) => row && typeof row.puzzle_date === "string")
                 .map((row) => [row.puzzle_date, row])
             );
             progressHelpText = "Green = completed, yellow = in progress, gray = unplayed.";
+            progressLoadStatus = "success";
           } else {
             progressHelpText = "Sign in to show archive progress states.";
+            progressLoadStatus = "unauthorized";
           }
         } catch (error) {
           progressHelpText = `Could not load archive progress: ${escapeHtml(error.message || String(error))}`;
+          progressLoadStatus = "error";
         }
       }
 
+      let localRowsMerged = 0;
       dateKeys.forEach((dateKey) => {
         const localRow = getLocalArchiveProgressRow(dateKey);
         if (!localRow) return;
+        localRowsMerged += 1;
         const currentRow = progressByDate.get(dateKey) || null;
         const mergedRow = choosePreferredArchiveProgressRow(currentRow, localRow);
         if (mergedRow) {
@@ -15799,6 +15985,15 @@ function resolveApiBaseOrigin(explicitBase) {
           });
         }
       });
+
+      trackAnalyticsEvent("archive_progress_loaded", getAnalyticsBaseParams({
+        source,
+        status: progressLoadStatus,
+        signed_in: authState.user && authState.user.id ? "yes" : "no",
+        days_shown: dateKeys.length,
+        server_rows_loaded: serverRowsLoaded,
+        local_rows_merged: localRowsMerged
+      }));
 
       const rowsHtml = dateKeys.map((dateKey, index) => {
         const row = progressByDate.get(dateKey);
@@ -15822,7 +16017,7 @@ function resolveApiBaseOrigin(explicitBase) {
         const weekdayLabel = formatArchiveWeekday(dateKey);
         const dayStamp = weekdayLabel ? weekdayLabel.toUpperCase() : "DAY";
         return `
-          <button class="archive-card archive-date-btn ${stateClass}" type="button" data-archive-date="${escapeHtml(dateKey)}">
+          <button class="archive-card archive-date-btn ${stateClass}" type="button" data-archive-date="${escapeHtml(dateKey)}" data-archive-days-ago="${index + 1}">
             <div class="archive-card-art">
               <span class="archive-card-art-mark">${escapeHtml(dayStamp)}</span>
               <span class="archive-card-status">${escapeHtml(statusText)}</span>
@@ -15883,6 +16078,17 @@ function resolveApiBaseOrigin(explicitBase) {
           if (!dateKey) return;
           const row = progressByDate.get(dateKey);
           const isCompleted = row && (row.status === "won" || row.status === "lost");
+          const selectionState = row && row.status === "started"
+            ? "in_progress"
+            : isCompleted
+              ? "completed"
+              : "unplayed";
+          trackAnalyticsEvent("archive_date_selected", getAnalyticsBaseParams({
+            source,
+            selection_state: selectionState,
+            days_ago: Number(button.getAttribute("data-archive-days-ago") || 0),
+            archive_days_ago_bucket: getArchiveDaysAgoBucket(Number(button.getAttribute("data-archive-days-ago") || 0))
+          }));
           navigateWithQuery({
             mode: "archive",
             date: dateKey,
