@@ -741,6 +741,20 @@
         0 6px 12px rgba(5, 8, 15, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
+    .archive-card-note {
+      position: absolute;
+      right: 10px;
+      top: 9px;
+      z-index: 3;
+      font-size: 0.62rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 244, 208, 0.82);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.46);
+      white-space: nowrap;
+    }
     .archive-card.state-won {
       border-color: rgba(125, 208, 163, 0.52);
       background:
@@ -788,6 +802,9 @@
       border-color: rgba(245, 215, 133, 0.72);
       background: rgba(128, 100, 33, 0.96);
       color: #fff2cd;
+    }
+    .archive-card.state-started .archive-card-note {
+      color: rgba(255, 244, 208, 0.86);
     }
     .archive-card.state-perfect {
       border-color: rgba(228, 206, 126, 0.72);
@@ -903,6 +920,13 @@
         margin: 0;
         padding: 4px 9px;
         font-size: 0.66rem;
+      }
+      .archive-card-note {
+        position: static;
+        justify-self: end;
+        align-self: start;
+        margin: 0;
+        font-size: 0.58rem;
       }
       .archive-card-date {
         position: static;
@@ -14411,12 +14435,26 @@ function resolveApiBaseOrigin(explicitBase) {
 
       const currentGuesses = Number(current.guesses_used) || 0;
       const candidateGuesses = Number(candidate.guesses_used) || 0;
+      let preferred = current;
+      let alternate = candidate;
       if (candidateGuesses !== currentGuesses) {
-        return candidateGuesses > currentGuesses ? candidate : current;
+        preferred = candidateGuesses > currentGuesses ? candidate : current;
+        alternate = preferred === candidate ? current : candidate;
+      } else if (current.localOnly && !candidate.localOnly) {
+        preferred = candidate;
+        alternate = current;
       }
 
-      if (current.localOnly && !candidate.localOnly) return candidate;
-      return current;
+      const preferredHasGuesses = Array.isArray(preferred.guesses) && preferred.guesses.length > 0;
+      const alternateHasGuesses = Array.isArray(alternate.guesses) && alternate.guesses.length > 0;
+      if (!preferredHasGuesses && alternateHasGuesses) {
+        return {
+          ...preferred,
+          guesses: alternate.guesses.slice(0, MAX_GUESSES)
+        };
+      }
+
+      return preferred;
     }
 
     function buildLocalProgressRow() {
@@ -14437,17 +14475,31 @@ function resolveApiBaseOrigin(explicitBase) {
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.guesses)) return null;
 
-        const rawGuessCount = parsed.guesses.length;
+        const guesses = parsed.guesses
+          .map((guess) => {
+            const movie = resolveMovieReference(guess);
+            if (!movie || typeof movie.title !== "string") return null;
+            const title = String(movie.title || "").trim();
+            const year = Number(movie.year);
+            if (!title || !Number.isInteger(year)) return null;
+            return { title, year };
+          })
+          .filter(Boolean)
+          .slice(0, MAX_GUESSES);
+        const rawGuessCount = guesses.length;
         const guessCount = Math.min(MAX_GUESSES, Math.max(0, Number(rawGuessCount) || 0));
         const started = Boolean(parsed.started) || guessCount > 0;
         const finished = Boolean(parsed.finished);
         if (!started && !finished) return null;
-        if (finished) return null;
 
         return {
           puzzle_date: puzzleDate,
-          status: "started",
-          guesses_used: Math.max(1, guessCount || 1),
+          status: finished ? (parsed.won ? "won" : "lost") : "started",
+          guesses_used: finished
+            ? Math.max(1, guessCount || 1)
+            : Math.max(1, guessCount || 1),
+          guesses,
+          updated_at: typeof parsed.localUpdatedAt === "string" ? parsed.localUpdatedAt : null,
           localOnly: true
         };
       } catch {
@@ -16002,6 +16054,10 @@ function resolveApiBaseOrigin(explicitBase) {
         const isStarted = row && row.status === "started";
         const isCompleted = isWon || isLost;
         const perfect = isWon && Number(row.guesses_used) === 1;
+        const startedGuessCount = isStarted
+          ? Math.max(1, Math.min(MAX_GUESSES, Number(row.guesses_used) || 1))
+          : 0;
+        const startedTurnText = isStarted ? `${startedGuessCount}/${MAX_GUESSES}` : "";
         const statusText = isStarted
           ? "In progress"
           : isCompleted
@@ -16020,6 +16076,7 @@ function resolveApiBaseOrigin(explicitBase) {
           <button class="archive-card archive-date-btn ${stateClass}" type="button" data-archive-date="${escapeHtml(dateKey)}" data-archive-days-ago="${index + 1}">
             <div class="archive-card-art">
               <span class="archive-card-art-mark">${escapeHtml(dayStamp)}</span>
+              ${startedTurnText ? `<span class="archive-card-note">${escapeHtml(startedTurnText)}</span>` : ""}
               <span class="archive-card-status">${escapeHtml(statusText)}</span>
               <span class="archive-card-art-meta">${escapeHtml(`${index + 1} ${index === 0 ? "day" : "days"} ago`)}</span>
               <span class="archive-card-date">${escapeHtml(formatArchiveDateLabel(dateKey))}</span>
@@ -16188,6 +16245,7 @@ function resolveApiBaseOrigin(explicitBase) {
     function applyResultStats() {
       if (customMode) return;
       const stats = loadStats();
+      const finalGuessCount = getFinishedGuessCount();
       const alreadyCountedDailyPlay = gameMode === "daily" && stats.lastDailyPlayedKey === puzzleKey;
       const alreadyCountedDailyWin = gameMode === "daily" && stats.lastDailyWinKey === puzzleKey;
       if (!(gameMode === "daily" && alreadyCountedDailyPlay)) {
@@ -16210,8 +16268,8 @@ function resolveApiBaseOrigin(explicitBase) {
           stats.lastDailyWinKey = puzzleKey;
         }
         stats.lastSolvedKey = puzzleKey;
-        if (stats.bestGuess === null || state.guesses.length < stats.bestGuess) {
-          stats.bestGuess = state.guesses.length;
+        if (stats.bestGuess === null || finalGuessCount < stats.bestGuess) {
+          stats.bestGuess = finalGuessCount;
         }
       } else if (gameMode === "daily") {
         stats.winStreak = 0;
@@ -16246,8 +16304,9 @@ function resolveApiBaseOrigin(explicitBase) {
 
     function buildShareText() {
       const safeGuesses = sanitizeStateGuesses();
-      const score = state.won ? state.guesses.length : "X";
-      const numericScore = state.won ? state.guesses.length : MAX_GUESSES;
+      const finishedGuessCount = getFinishedGuessCount();
+      const score = state.won ? finishedGuessCount : "X";
+      const numericScore = state.won ? finishedGuessCount : MAX_GUESSES;
       const stats = loadStats();
       const lines = [`🎬 #Flickle ${puzzleKey}`];
       lines.push(`${score}/${MAX_GUESSES} — Rank: ${getFlickleRank(numericScore, state.won)}`);
