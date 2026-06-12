@@ -11840,7 +11840,7 @@
           if (!card) return;
           if (!state.finished) return;
           if (customMode) return;
-          if (gameMode !== "daily") return;
+          if (gameMode !== "daily" && gameMode !== "archive") return;
           if (isWinRevealHoldActive()) return;
           playCardEasterFlip(card);
         });
