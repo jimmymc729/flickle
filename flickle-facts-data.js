@@ -1712,6 +1712,117 @@ window.FLICKLE_CURATED_FACTS = {
   "Now You See Me 2": [
     "The card tricks in Now You See Me 2 were choreographed with real magicians so actors could perform many sleight-of-hand moves themselves."
   ],
+  "The Devil's Advocate": [
+    "Al Pacino improvised many of Satan's most memorable speeches, giving the character an unpredictable energy."
+  ],
+  "Silver Linings Playbook": [
+    "Jennifer Lawrence was only 22 when she won the Academy Award for Best Actress for her performance."
+  ],
+  "Marty Supreme": [
+    "Much of the movie's table tennis action was created using a blend of real play, visual effects, and intensive training by the cast."
+  ],
+  "The Intouchables": [
+    "The film is based on the true friendship between a wealthy quadriplegic and his caregiver."
+  ],
+  "American Gangster": [
+    "Frank Lucas, the real-life drug kingpin portrayed in the film, briefly appears as a background extra."
+  ],
+  "Spectre": [
+    "The opening Day of the Dead sequence involved more than 1,500 costumed extras and became one of the largest scenes ever filmed for a Bond movie."
+  ],
+  "Indiana Jones and the Temple of Doom": [
+    "The movie was so intense that it helped inspire the creation of the PG-13 rating."
+  ],
+  "Doctor Strange in the Multiverse of Madness": [
+    "Director Sam Raimi filled the movie with horror-inspired camera work and visual references to his Evil Dead films."
+  ],
+  "Jurassic World Dominion": [
+    "The original Jurassic Park trio reunited onscreen for the first time since the 1993 film."
+  ],
+  "Homefront": [
+    "Sylvester Stallone wrote the screenplay, adapting it from Chuck Logan's novel."
+  ],
+  "Birds of Prey (and the Fantabulous Emancipation of One Harley Quinn)": [
+    "Margot Robbie helped develop the project and pushed for Harley Quinn to headline her own chaotic adventure."
+  ],
+  "Red One": [
+    "The production built enormous North Pole sets instead of relying entirely on digital environments."
+  ],
+  "Babylon": [
+    "The massive opening party sequence required hundreds of extras, live animals, and weeks of choreography."
+  ],
+  "Shrek 2": [
+    "It became the highest-grossing animated film ever at the time of its release."
+  ],
+  "Harry Potter and the Philosopher's Stone": [
+    "Nearly every Hogwarts letter seen in the movie was physically printed rather than created digitally."
+  ],
+  "Batman": [
+    "Michael Keaton's casting as Batman was so controversial that Warner Bros. received thousands of complaint letters before the movie even released."
+  ],
+  "Ant-Man and the Wasp: Quantumania": [
+    "The Quantum Realm environments were created almost entirely with virtual production technology and visual effects."
+  ],
+  "Horton Hears a Who!": [
+    "The filmmakers worked closely with Dr. Seuss Enterprises to preserve the look of the original illustrations."
+  ],
+  "The Basketball Diaries": [
+    "Leonardo DiCaprio's performance is widely considered one of the roles that launched him toward superstardom."
+  ],
+  "Corpse Bride": [
+    "The puppets used for the stop-motion animation contained tiny mechanical faces capable of thousands of expressions."
+  ],
+  "The Suicide Squad": [
+    "Director James Gunn was given remarkable creative freedom after Warner Bros. specifically hired him for the project."
+  ],
+  "Jurassic World Rebirth": [
+    "The filmmakers returned to extensive real-world jungle locations to recapture the adventure feel of the original Jurassic Park films."
+  ],
+  "Spider-Man: Across the Spider-Verse": [
+    "Different Spider-People were animated in completely different visual styles to make every universe feel unique."
+  ],
+  "The Irishman": [
+    "The movie used extensive de-aging visual effects so the same actors could portray their characters across decades."
+  ],
+  "Zombieland": [
+    "Bill Murray agreed to play himself, creating one of the movie's most memorable surprise cameos."
+  ],
+  "Sing 2": [
+    "Bono came out of retirement from animated films to voice legendary rock star Clay Calloway."
+  ],
+  "Guardians of the Galaxy Vol. 3": [
+    "The emotional Rocket backstory took years to reach the screen and became the heart of James Gunn's Guardians trilogy."
+  ],
+  "Extraction 2": [
+    "The movie's spectacular prison escape was designed to appear as one continuous 21-minute shot."
+  ],
+  "The Grinch": [
+    "Benedict Cumberbatch practiced lowering his voice to create the Grinch's distinctive sound."
+  ],
+  "A Quiet Place: Day One": [
+    "The film explores the very first day of the alien invasion, showing how quickly ordinary city life collapsed."
+  ],
+  "Toy Story 4": [
+    "Forky was intentionally designed to look homemade, with many of his materials resembling real craft supplies."
+  ],
+  "Charlie and the Chocolate Factory": [
+    "Tim Burton used real squirrels for the nut-sorting scene after they were trained for months."
+  ],
+  "Wrath of Man": [
+    "The movie is a remake of the French thriller Cash Truck."
+  ],
+  "Ocean's Eight": [
+    "Many luxury jewelry pieces seen in the film were real and guarded by heavy security during production."
+  ],
+  "Thunderbolts*": [
+    "Most of the movie's central team consists of former Marvel villains and antiheroes rather than traditional superheroes."
+  ],
+  "Hacksaw Ridge": [
+    "Desmond Doss, the real soldier portrayed in the film, rescued around 75 men without ever carrying a weapon."
+  ],
+  "Thor": [
+    "Director Kenneth Branagh brought his Shakespeare background to the film, shaping Asgard like a royal family drama."
+  ],
   "xXx: Return of Xander Cage": [
     "xXx: Return of Xander Cage was designed as a globe-spanning action movie, with filming taking place across multiple countries including the Philippines and Canada."
   ]
