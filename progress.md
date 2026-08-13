@@ -170,3 +170,20 @@ Original prompt: i think the problem might still exist on mobile, can you check 
   - Recommended verification after deploy:
     - In GA DebugView, confirm cleaned events still fire with the new bucketed params.
     - In standard GA reports, confirm dimensions no longer get cluttered by exact titles/inputs.
+
+- Archive range restoration (August 13):
+  - Replaced the hard-coded `45` day archive limit with a span computed from `ARCHIVE_FIRST_PUZZLE_DATE`.
+  - Added `ARCHIVE_FIRST_PUZZLE_DATE = new Date(2026, 4, 31)` based on the earliest archive-support date found in local worker docs/config.
+  - Archive modal now generates every prior daily from that start date through yesterday, instead of stopping at 45 days.
+  - Verification still needed in-browser to confirm older cards render comfortably and performance remains acceptable with the longer list.
+
+- Win celebration pass (July 16):
+  - Added a restrained win effect on the final correct guess card only during the existing win-hold window.
+  - Effect combines a soft starburst behind the winning card with a short confetti/glitter pop above it.
+  - Reused the existing tile flip timing and slightly lengthened it for wins so the celebration reads without adding a new panel.
+  - No changes to scoring, reveal flow, or postgame layout.
+  - Verification in progress: visual check still needed to judge whether the burst feels tasteful or too busy.
+
+  - Confetti motion revision: increased upward burst density but changed the keyframes to arc up first, then drift downward with a longer fall, aiming for a more realistic confetti feel instead of a straight particle burst.
+
+  - Replaced the confetti experiment with a cleaner Hollywood-style sparkle burst: kept the soft starburst behind the winning card, removed falling pieces, and added a few short-lived gold/white/green sparkle flares instead.

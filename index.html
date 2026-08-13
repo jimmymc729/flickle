@@ -383,6 +383,17 @@
     .howto-list li + li {
       margin-top: 4px;
     }
+    .howto-detail-label {
+      margin-top: 12px;
+    }
+    .howto-detail-list {
+      margin-top: 8px;
+      padding-left: 20px;
+      line-height: 1.5;
+    }
+    .howto-detail-list li + li {
+      margin-top: 5px;
+    }
     .howto-legend {
       display: flex;
       gap: 8px;
@@ -2946,6 +2957,7 @@
 
   <script>
     const MAX_GUESSES = 10;
+    const ARCHIVE_FIRST_PUZZLE_DATE = new Date(2026, 4, 31);
     const HINT_POINTS_HIT = 3;
     const HINT_POINTS_NEAR = 1;
     const HINT_POINT_COST = 50;
@@ -15649,6 +15661,14 @@ function resolveApiBaseOrigin(explicitBase) {
               <span class="howto-chip near">Yellow = Close</span>
               <span class="howto-chip miss">Gray = No Match</span>
             </div>
+            <p class="howto-text howto-detail-label"><strong>Yellow means:</strong></p>
+            <ul class="howto-list howto-detail-list">
+              <li>Year: within 5 years</li>
+              <li>Runtime: within 10 min</li>
+              <li>Title words: within 1</li>
+              <li>Rating / Box office: 1 tier away</li>
+              <li>Studio: same family or very similar label</li>
+            </ul>
             <p class="howto-tip">Tip: <strong>↑</strong> means the answer is higher/more, <strong>↓</strong> means lower/less.</p>
           </section>
           <section class="howto-section">
@@ -16103,13 +16123,17 @@ function resolveApiBaseOrigin(explicitBase) {
 
     async function showArchiveModal(source = "direct") {
       closeMenu();
-      const days = 45;
       const today = buildPuzzleDate(new Date(), 0);
+      const archiveStartDate = buildPuzzleDate(ARCHIVE_FIRST_PUZZLE_DATE, 0);
+      const archiveSpanDays = Math.max(
+        0,
+        Math.round((today.getTime() - archiveStartDate.getTime()) / 86400000)
+      );
       trackAnalyticsEvent("archive_opened", getAnalyticsBaseParams({
         source,
       }));
       const dateKeys = [];
-      for (let i = 1; i <= days; i += 1) {
+      for (let i = 1; i <= archiveSpanDays; i += 1) {
         dateKeys.push(formatPuzzleKey(buildPuzzleDate(today, -i)));
       }
       if (!dateKeys.length) return;
